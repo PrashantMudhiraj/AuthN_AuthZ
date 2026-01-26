@@ -12,7 +12,7 @@ Phase 0 - Cryptography Foundations
             - This is the actual power in cryptography, *No Security without a key*.
 
         - Encryption: Converting plaintext -> ciphertext using a key, so it can be reversed later
-            - Important property : 
+            - Important property :
                 - Reversible
             - Used when data must be read again later
 
@@ -20,7 +20,7 @@ Phase 0 - Cryptography Foundations
             - Only someone with the correct key can decrypt
 
         - Hash: A one-way transformation of data
-            - Key properties:   
+            - Key properties:
                 - Cannot be reversed
                 - Same input -> Same output
                 - Small change -> Complete different output
@@ -31,7 +31,7 @@ Phase 0 - Cryptography Foundations
                 - Prevents precomputed attacks(rainbow tables)
             - Salt is not secret -> it is stored with the hash
 
-        - Signature: 
+        - Signature:
             - Cryptography proof that:
                 - Data was created by a trusted party
                 - Data was not modified
@@ -58,7 +58,7 @@ Phase 0 - Cryptography Foundations
             - Keep data secret -> Solved by encryption
             - Store secret safely -> Solved by Hashing
             - Prove trust -> Solved by Signatures
-            
+
         - Why these are used?
             - Why encryption?
                 - Protect data in transit(HTTPS)
@@ -70,7 +70,7 @@ Phase 0 - Cryptography Foundations
                 - JWT trusts
                 - OAuth tokens
                 - API authentication
-        
+
         - data + private key -> signature
         - data + public key -> verification
         - Private key sign data
@@ -178,8 +178,8 @@ Phase 0 - Cryptography Foundations
                 *      - Each block depends on the previous block
                 * IV (Initialization vector) : A random value used only for first block of operation
                 */
-            
-        - AES (Advanced Encryption Standard)   
+
+        - AES (Advanced Encryption Standard)
             - It is Encryption algorithm used to convert plaintext to ciphertext using a key.
             - A symmetric encryption algorithm
             - Used worldwide as the standard for data encryption
@@ -214,7 +214,7 @@ Phase 0 - Cryptography Foundations
         - Simple flow
             - Plaintext -> Encrypt(key) -> Ciphertext
             - Ciphertext -> Decrypt(key) -> Plaintext
-        
+
         - It is used because fast, efficient and low CPU cost
         - That's why it is used for:
             - HTTPS data encryption(after handshake)
@@ -224,7 +224,7 @@ Phase 0 - Cryptography Foundations
             - Cookies
 
         - Big Problem
-                - How to two parties securely share the same secret key? 
+                - How to two parties securely share the same secret key?
                 - If key is stolen:
                     - All encrypted data is compromised
                     - Attackers can decrypt everything
@@ -235,7 +235,7 @@ Phase 0 - Cryptography Foundations
             - A short cryptographic value produced during encryption that proves:
                 - That data was not modified
                 - The correct key was used
-            - Authenticate Encryption  
+            - Authenticate Encryption
                 - Encryption that provides:
                     - confidentiality (secrecy)
                     - Integrity (tamper detection)
@@ -245,7 +245,7 @@ Phase 0 - Cryptography Foundations
                 - Any modification = decryption fails
                 - Wrong key = decryption fails
                 - Wrong IV = decryption fails
-            - This is why GCM is preferred today 
+            - This is why GCM is preferred today
                 - GCM stands for Galois/Counter Mode. It is a "mode of operation" for symmetric key block ciphers(most commonly AES)
                 - In simple terms, GCM is a "two-in-one" technology. It provides Encryption(secrecy) and Authentication(Integrity) at the same time.
             - AES-GCM produces two outputs
@@ -253,10 +253,10 @@ Phase 0 - Cryptography Foundations
                 2. Auth Tag -> integrity proof
 
                 - Key + IV + plaintext -> ciphertext + tag
-                - The auth tag is calculated using 
+                - The auth tag is calculated using
                     - Encrypted data
                     - Key
-                    - IV 
+                    - IV
                     - Optional associated data
                 - During decryption
                     - Recalculate authTag -> compare with provided authTag
@@ -270,7 +270,7 @@ Phase 0 - Cryptography Foundations
             - OAuth 2.0
             - OIDC
             - TLS (HTTPS)
-        
+
         - Asymmetric Cryptography system that use two different keys:
             - One key to encrypt or sign
             - Another key to decrypt or verify
@@ -356,7 +356,7 @@ Phase 0 - Cryptography Foundations
 
         - JWT vs OAuth
 
-            - JWT 
+            - JWT
                 - A token format - a way to represent claims securely
 
             - OAuth 2.0
@@ -392,7 +392,7 @@ Phase 0 - Cryptography Foundations
                     - How tokens are requested?
                     - Who issues them
                     - Who can use them
-                    - For how long           
+                    - For how long
 
     0.4 Digital Signatures
 
@@ -413,7 +413,7 @@ Phase 0 - Cryptography Foundations
         - Non-repudiation
             - The signer cannot deny having signed that data later
 
-        - High-level 
+        - High-level
             - Signing flow
                 - Data -> Hash -> Sign(hash(data), privatekey) -> Signature
                     - Signature = Encrypt(Hash(data), PrivateKey)
@@ -432,7 +432,7 @@ Phase 0 - Cryptography Foundations
                         3. Compare hash1 and hash2 -> hash1 === hash2
             - If you need secrecy -> Encryption
             - If you need trust -> use signatures
-        
+
         - Digital signature never operate on raw data, they operate on hashes.
 
                 Issuer:
@@ -489,7 +489,7 @@ Phase 0 - Cryptography Foundations
                 - Systematically trying many passwords until one matches
 
         2. What is password hashing
-            - We never store passwords. We store proofs that a password was correct. 
+            - We never store passwords. We store proofs that a password was correct.
             - You cannot "decrypt" a password hash
 
             - User enters password
@@ -528,7 +528,7 @@ Phase 0 - Cryptography Foundations
 
         6. How salt protect you
             - hash(password + uniqueSalt)
-            - Same password -> different hash per user 
+            - Same password -> different hash per user
             - Rainbow tables become useless
             - Salt:
                 - Is random
@@ -541,10 +541,10 @@ Phase 0 - Cryptography Foundations
                 - Protects against DB-only breaches
         7. passwords are verified, not recovered
         8. Code: ref - ./code/phase-0/passwordHashing.js
---------------------------------------------------------------------------------------------
-Phase 1 - Authentication & Authorization Foundations
 
-    0 - Terminologies
+---
+
+Phase 1 - Authentication & Authorization Foundations
 
         - Authentication (AuthN)
             - AuthN is a process which a system verifies that an entity(User or system) is genuinely who it claims to be, usually by validation credentials, such as passwords, tokens, or cryptographic proof
@@ -567,7 +567,7 @@ Phase 1 - Authentication & Authorization Foundations
             - Focus(AuthZ)
             - "One identity can have multiple principals"
 
-        - Policy 
+        - Policy
             - A Policy is set of rules that determines whether a principal with certain attributes or permissions is allowed to perform a requested action
             - Policies are the mechanism through which authorization decisions are enforced.
             - a Policy is the Rule book or the Contract.
@@ -592,7 +592,7 @@ Phase 1 - Authentication & Authorization Foundations
                 // 2. PRINCIPAL: This 'user' object is the Principal.
                 // It is the "Actor" representing Sarah in this request.
 
-                        const principal = request.user; 
+                        const principal = request.user;
 
                 // 3. ROLE: Where does it fit? It's a property OF the Principal.
 
@@ -618,12 +618,12 @@ Phase 1 - Authentication & Authorization Foundations
                             sessionId: "session_abc123",
                             authenticatedAt: "2023-10-27T10:00:00Z",
                             ipAddress: "192.168.1.1",
-                            
+
                             // 3. ROLES (The Groups)
                             roles: ["ADMIN", "EDITOR"],
 
                             // 4. POLICY (The Logic Source)
-                            // In complex systems, we often attach the "Policy ID" that 
+                            // In complex systems, we often attach the "Policy ID" that
                             // was used to calculate the permissions.
                             appliedPolicy: "ENTERPRISE_ADMIN_POLICY_V2",
 
@@ -649,68 +649,90 @@ Phase 1 - Authentication & Authorization Foundations
             - 403 Forbidden means the system knows who you are but refuses the action
 
         - Code : ref -> .code/phase-1/AuthMiddleware.js
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------
-x. OAuth 2.0 
-	1.1 Terminology
-	    - Resource Owner(me): Entity that can grant access to a protected resource. Typically this is end user.
-	    - Client(any app that contact access): Application requesting access to a protected resource on behalf of the Resource Owner
-	    - Resource Server(google.contacts.api): Server hosting the protected resources. This is the API you want to access
-	    - Authorization Server(accounts.google.com): Server that authenticates the Resource Owner and issues Access Tokens after getting proper authentication. In this case AuthO.
-	    - Authorization grant: That proves User approved/granted access for protected resource
-	    - Redirect URI : callback url, Once AuthZ done, It will redirect to redirect_uri
-	    - Access token: It is a secure, temporary digital key or credential that allows an application to access specific resources (like an API or data) on behalf of a user, without needing their password repeatedly
-	    - User Agent: Agent used by the resource owner to interact with the client(example, a browser or a native application)
-		- Scope: It defines the specific actions application can be allowed to do on user's behalf
-		- Back channel (highly secure channel): Backend server
-		- Front channel (less secure channel): Frontend App
 
-	1.2 Flows 
-		- Authorization code(front channel + back channel)
-		- Implicit(front channel only)
+---
 
-		- Resource owner password credentials(back channel only)
-		- Client credentials(back channel only)
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+x. OAuth 2.0
+1.1 Terminology - Resource Owner(me): Entity that can grant access to a protected resource. Typically this is end user. - Client(any app that contact access): Application requesting access to a protected resource on behalf of the Resource Owner - Resource Server(google.contacts.api): Server hosting the protected resources. This is the API you want to access - Authorization Server(accounts.google.com): Server that authenticates the Resource Owner and issues Access Tokens after getting proper authentication. In this case AuthO. - Authorization grant: That proves User approved/granted access for protected resource - Redirect URI : callback url, Once AuthZ done, It will redirect to redirect_uri - Access token: It is a secure, temporary digital key or credential that allows an application to access specific resources (like an API or data) on behalf of a user, without needing their password repeatedly - User Agent: Agent used by the resource owner to interact with the client(example, a browser or a native application) - Scope: It defines the specific actions application can be allowed to do on user's behalf - Back channel (highly secure channel): Backend server - Front channel (less secure channel): Frontend App
+
+    1.2 Flows
+    	- Authorization code(front channel + back channel)
+    	- Implicit(front channel only)
+
+    	- Resource owner password credentials(back channel only)
+    	- Client credentials(back channel only)
 
 2. Problems with OAuth 2.o for authentication
-	- No standard way to get the user's information
-	- Every implementation is a little different
-	- No common set of scopes
+    - No standard way to get the user's information
+    - Every implementation is a little different
+    - No common set of scopes
 
 3. OAuth 2.0 and OpenID connect
-	- OpenID Connect is for authentication
-	- OAuth 2.0 is for authorization
---------------------------------------------------------------------------------------------
+    - OpenID Connect is for authentication
+    - OAuth 2.0 is for authorization
 
-
+---
