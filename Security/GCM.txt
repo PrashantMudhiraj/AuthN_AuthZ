@@ -1,0 +1,46 @@
+GCM stands for Galois/Counter Mode. It is a "mode of operation" for symmetric key block ciphers (most commonly AES).
+In simple terms, GCM is a "two-in-one" technology: it provides Encryption (Secrecy) and Authentication (Integrity) at the same time.
+Here is the breakdown of why GCM is the industry standard today:
+
+1. The Two Parts of GCM
+    To understand GCM, you have to look at its two components:
+
+    - Counter (the "C" in GCM): 
+        - This is the encryption part. It turns the block cipher into a stream cipher by using a counter. This makes it very fast because it can encrypt different parts of the data at the same time (parallel processing).
+    - Galois (the "G" in GCM): 
+        - This is the mathematical process (using Galois field multiplication) used to create the Authentication Tag (the authTag we discussed earlier). It calculates a mathematical "fingerprint" of the data as it is being encrypted.
+
+2. Why GCM is "AEAD"
+    - GCM is categorized as AEAD (Authenticated Encryption with Associated Data).
+    - Before GCM, if you wanted to encrypt a message and make sure it wasn't tampered with, you had to do two separate steps:
+        - Encrypt the message (e.g., using AES-CBC).
+        - Run the message through a second algorithm to create a signature (e.g., HMAC).
+    - GCM does both in one single pass. This is more efficient and less prone to developer errors.
+
+3. Key Characteristics of GCM
+    A. The "Auth Tag" is Required
+        - Unlike older modes (like CBC), GCM produces an Authentication Tag.
+        - If you decrypt the data and the tag doesn't match, GCM tells you immediately.
+        - In older modes, you might decrypt a tampered message and get "gibberish" without knowing the message was actually changed by an attacker.
+
+    B. Performance
+        - Because the "Counter" mode allows for parallelization, GCM is incredibly fast on modern CPUs. Most modern processors (Intel, AMD, ARM) have built-in hardware instructions (AES-NI) specifically designed to speed up GCM.
+
+    C. The Importance of the IV (Nonce)
+        - GCM has one strict rule: Never use the same IV (Initialization Vector) with the same key twice.
+
+- If you reuse an IV/Key pair in GCM, an attacker can perform a mathematical operation to recover the "authentication key" and potentially decrypt your messages.
+
+- This is why, in Node.js, you see crypto.randomBytes(12) used for the IV every time.
+
+- Summary    Table: GCM vs. Older Modes (like CBC)
+        ---------------------------------------------------------------------------------------------
+        Feature	                    AES-CBC (Old)	                 AES-GCM (Modern)
+        ---------------------------------------------------------------------------------------------
+        Secrecy	                    Yes	                                Yes
+        Integrity/Authenticity	    No (Needs a separate HMAC)	        Yes (Built-in via Auth Tag)
+        Speed	                    Slower (Sequential)	                Faster (Parallel)
+        Tamper Detection	        No	                                Yes
+        Standard usage	            Legacy systems	                    TLS 1.2+, HTTPS, SSH, VPNs
+        ---------------------------------------------------------------------------------------------
+In short: GCM is the "Gold Standard" for modern encryption because it provides the Secrecy of encryption AND the Integrity + Authenticity of a signature in one efficient package.

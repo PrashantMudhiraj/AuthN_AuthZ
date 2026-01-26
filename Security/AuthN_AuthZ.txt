@@ -1,0 +1,716 @@
+Phase 0 - Cryptography Foundations
+
+    0.1 Terminologies
+
+        - Plain Text: Data in its original, readable form.
+            - Example: password123
+
+        - Ciphertext: Unreadable, transformed version of plain text after cryptographic operation.
+            - Example: 983089703n83ebx2z211097as349kw122
+
+        - Key: A Secret value used to transform data
+            - This is the actual power in cryptography, *No Security without a key*.
+
+        - Encryption: Converting plaintext -> ciphertext using a key, so it can be reversed later
+            - Important property : 
+                - Reversible
+            - Used when data must be read again later
+
+        - Decryption: Converting ciphertext -> plaintext using a key
+            - Only someone with the correct key can decrypt
+
+        - Hash: A one-way transformation of data
+            - Key properties:   
+                - Cannot be reversed
+                - Same input -> Same output
+                - Small change -> Complete different output
+            - Hashing is not encryption
+
+        - Salt: Random data added to input before hashing
+            - Why it exists:
+                - Prevents precomputed attacks(rainbow tables)
+            - Salt is not secret -> it is stored with the hash
+
+        - Signature: 
+            - Cryptography proof that:
+                - Data was created by a trusted party
+                - Data was not modified
+            - A signature proves who sent it and that it hasn't been changed, but it does not hide the information from others.
+            - Signature = integrity + authenticity, not secrecy
+            - Integrity
+                - It hasn't been tampered with.
+                - It ensure that the data you received is exactly what was sent.
+                    - How it works:
+                        - When a sender signs a document, a mathematical "fingerprint" (called as hash) is created based on the content.
+                    - Th Result:
+                        - If even a single comma or digit is changed in the document after it's signed, the "fingerprint" will no longer match. The recipient will immediately know the data was altered.
+            - Authenticity
+                - It proves the identity of the person or system that created the signature
+                    - How it works:
+                        - It uses Asymmetric Cryptography. The sender used their Private Key(which only they have) to create the signature
+                    - The Result:
+                        - Because the recipient uses the sender's public key to verify it. they can be 100% certain that it was created by the owner of that specific key. This also provides Non-repudiation, meaning the sender cannot later claim they didn't sign it.
+            - Not Secrecy
+                - This is the most common point of confusion. A digital signature is not encryption.
+                - If you sign a digital letter but don't encrypt it. the letter is sent in "plain text". This means anyone who intercepts the letter can read every word you wrote.
+
+        - Cryptography solve three fundamental problems
+            - Keep data secret -> Solved by encryption
+            - Store secret safely -> Solved by Hashing
+            - Prove trust -> Solved by Signatures
+            
+        - Why these are used?
+            - Why encryption?
+                - Protect data in transit(HTTPS)
+                - Protect data at rest(DB, backups)
+            - Why hashing?
+                - Password storage
+                - verifying integrity
+            - Why signatures?
+                - JWT trusts
+                - OAuth tokens
+                - API authentication
+        
+        - data + private key -> signature
+        - data + public key -> verification
+        - Private key sign data
+        - Public key verifies signature
+        - Data cannot be altered without breaking signature
+
+        - Hashing
+
+                import crypto from "crypto";
+                /**
+                * crypt is a built in node.js module
+                * Provides cryptographic primitives (hashing, encryption, random bytes)
+                * No external npm package needed
+                *
+                * createHash('sha2456'):
+                *  - creates a hash function
+                *  - sha256 is a cryptographic hash algorithm
+                *  - output size : 256 bits
+                *
+                * update(password)
+                *  - Feed input data into the hash function
+                *  - You can call update() multiple times for streams
+                *
+                * digest('hex')
+                *  - Finalize the hash
+                *  - Converts binary output -> hex string(readable)
+                *
+                * Hashes the password
+                * output looks random
+                * Same input -> Same output
+                *
+                * In production, we do not use raw SHA-256 for passwords
+                * We use bcrypt or argon
+                */
+
+                function hashPassword(password) {
+                    const hash = crypto.createHash("sha256").update(password).digest("hex");
+                    console.log(hash);
+                    return hash;
+                }
+
+                hashPassword("password123");
+
+        - Encrypt & Decrypt
+
+                import crypto from "crypto";
+
+                /**
+                * crypto.randomBytes(32)
+                *  - Generate a random symmetric key
+                *  - 32 bytes = 256 bits
+                *  - Used by AES-256
+                *
+                * crypto.randomBytes(16)
+                *  - IV = Initializer vector
+                *  - Adds randomness
+                *  - Prevents identical plaintext from production identical ciphertext
+                *  - IV is not secret, but must be unique
+                *
+                * crypto.createCipheriv('aes-256-cbc', key, iv);
+                *  - Creates an AES cipher
+                *  - aws-256-cbc
+                *      - AES algorithm
+                *      - 256-bits
+                *      - CBC mode -> Cipher Blocking chain
+                *          - CBC is used here for demo; GCM is preferred in real systems
+                * crypto.update(text,'utf-8','hex') + cipher.final('hex');
+                *  - update() -> encrypt data
+                *  - utf-8 -> input encoding
+                *  - hex -> output encoding
+                *  - final() -> finishes encryption
+                *
+                * crypto.createDecipheriv('aes-256-cbc', key, iv);
+                *  - Uses same algorithm
+                *  - Uses same key
+                *  - Uses same IV
+                *
+                * - This is why symmetric crypto is called symmetric
+                */
+
+                const key = crypto.randomBytes(32);
+                console.log(key);
+                const iv = crypto.randomBytes(16);
+                console.log(iv);
+
+                function encrypt(text) {
+                    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+                    return cipher.update(text, "utf-8", "hex") + cipher.final("hex");
+                }
+
+                function decrypt(encrypted) {
+                    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+                    return decipher.update(encrypted, "hex", "utf-8") + decipher.final("utf-8");
+                }
+
+                const secret = encrypt("hello");
+                console.log(decrypt(secret));
+
+                /**
+                * Block Cipher : An Encryption algorithm that works on fixed-size blocks of data. Can encrypt only one block at a time.
+                * Stream Cipher : An Encryption algorithm that encrypts data bit-by-bit or byte-by-byte
+                * Block Cipher Mode : A method that tells the cipher how to encrypt data longer than one block. (CBC one of them)
+                * CBC (Cipher Block Chaining) : A block cipher mode of operation
+                *  - CBC chains blocks together so that:
+                *      - Each block depends on the previous block
+                * IV (Initialization vector) : A random value used only for first block of operation
+                */
+            
+        - AES (Advanced Encryption Standard)   
+            - It is Encryption algorithm used to convert plaintext to ciphertext using a key.
+            - A symmetric encryption algorithm
+            - Used worldwide as the standard for data encryption
+            - Default choice for:
+                - HTTPS
+                - Disk encryption
+                - Database
+                - Cloud storage
+                - JWT(when encrypted, JWE)
+
+    0.2 Symmetric Cryptography
+
+        - A Cryptography method where the same key is used for:
+            - Encryption
+            - Decryption
+
+        - Symmetric Key / Shared secret
+            - A Shared secret key known to both sender and receiver
+            - Whoever has this key can:
+                - Encrypt data
+                - Decrypt data
+            - Both parties must already trust reach other
+
+        - Blocker Cipher
+            - An algorithm that encrypts data in fixed-size blocks
+            - Example: AES (16-byte block)
+
+        - Stream Cipher
+            - An algorithm that encrypts data byte-by-byte or bit-by-bit
+            - Example: ChaCha20
+
+        - Simple flow
+            - Plaintext -> Encrypt(key) -> Ciphertext
+            - Ciphertext -> Decrypt(key) -> Plaintext
+        
+        - It is used because fast, efficient and low CPU cost
+        - That's why it is used for:
+            - HTTPS data encryption(after handshake)
+            - Database encryption
+            - File encryption
+            - session data
+            - Cookies
+
+        - Big Problem
+                - How to two parties securely share the same secret key? 
+                - If key is stolen:
+                    - All encrypted data is compromised
+                    - Attackers can decrypt everything
+
+        - Code : refer ./code/phase-0/symmetricCryptography.js
+
+        - Authentication Tag (AuthTag)
+            - A short cryptographic value produced during encryption that proves:
+                - That data was not modified
+                - The correct key was used
+            - Authenticate Encryption  
+                - Encryption that provides:
+                    - confidentiality (secrecy)
+                    - Integrity (tamper detection)
+                    - Authenticity (correct key)
+            - In Node.js, getAuthTag() and setAuthTag() are methods used specifically with AEAD (Authenticated Encryption with Associated Data) ciphers, such aes-256-gcm or chacha20-ploy305
+            - With auth tag:
+                - Any modification = decryption fails
+                - Wrong key = decryption fails
+                - Wrong IV = decryption fails
+            - This is why GCM is preferred today 
+                - GCM stands for Galois/Counter Mode. It is a "mode of operation" for symmetric key block ciphers(most commonly AES)
+                - In simple terms, GCM is a "two-in-one" technology. It provides Encryption(secrecy) and Authentication(Integrity) at the same time.
+            - AES-GCM produces two outputs
+                1. Ciphertext -> encrypted data
+                2. Auth Tag -> integrity proof
+
+                - Key + IV + plaintext -> ciphertext + tag
+                - The auth tag is calculated using 
+                    - Encrypted data
+                    - Key
+                    - IV 
+                    - Optional associated data
+                - During decryption
+                    - Recalculate authTag -> compare with provided authTag
+                    - If they match -> decrypt
+                    - If not -> throw error
+
+    0.3 Asymmetric Cryptography
+
+        - This topic explain Public/Private key, which is foundational for:
+            - JWT (RS256/ES256)
+            - OAuth 2.0
+            - OIDC
+            - TLS (HTTPS)
+        
+        - Asymmetric Cryptography system that use two different keys:
+            - One key to encrypt or sign
+            - Another key to decrypt or verify
+
+        - Key Pair
+            - A mathematically linked pair of keys
+                - Public key
+                - Private key
+            - They are generated together and cannot exist independently
+
+                - Public key
+                    - Can be shared openly
+                    - Used to:
+                        - Encrypt data for the owner
+                        - Verify signatures from the owner
+
+                - Private Key
+                    - Must be kept secret
+                    - Used to:
+                        - Decrypt data
+                        - Create digital signature
+
+        - Key Distribution
+            - The process of sharing key securely
+            - Asymmetric cryptography solves the Key-sharing problem of symmetric crypto.
+
+            - Public key -> encrypt
+            - Private key -> decrypt
+
+            - for signature
+            - Public key -> verify
+            - Private key -> sign
+
+        - Mathematical property
+            - Public & Private keys are mathematically related
+            - But:
+                - Public key cannot derive private key
+                - Even with unlimited public access
+            - This relies on:
+                - Large prime factorization(RSA)
+                - Elliptic curve math(ECC)
+
+        - Code : refer ./code/phase-0/asymmetricCryptography.js
+
+        - Questions
+            - Why JWT Has RS256
+                - JWT: JSON Web Token
+                - RS256: RSA + SHA-256 (asymmetric signing)
+                - Issuer: Entity that creates a token
+                - Verifier: Entity that validates the token
+
+                - RS256 Solution (Asymmetric Signing)
+                    - Private key -> Sign jwt
+                    - Public key -> Verify jwt
+                - How this works
+                    - Auth server signs JWT with private key
+                    - APIs verify using public key
+                    - APIs cannot forge tokens
+
+            - Why OAuth Trusts Tokens
+                - OAuth tokens are not encrypted passwords
+                - They are signed claims
+                - "Digital Signature"
+
+                - OAuth Token Flow (Simplified)
+                    - Authorization server
+                        |_ signs token with private key
+
+                    - Resource server
+                        |_ verifies token with public key
+
+            - Why HTTPS is Possible
+                - The HTTPS Problem
+                    - How can i securely talk to a server i've never met before?
+                - TLS Handshake
+                    - Server sends public key(certificate)
+                    - Client verifies certificates authority(CA)
+                    - Client generates random symmetric key
+                    - Client encrypts it with server's public key
+                    - Server decrypts with private key
+                - Now both share a symmetric session key.
+
+
+        - JWT vs OAuth
+
+            - JWT 
+                - A token format - a way to represent claims securely
+
+            - OAuth 2.0
+                - An Authorization framework - a protocol that defines:
+                    - Roles
+                    - Flows
+                    - How tokens are issued and used
+
+            - Access Token
+                - A token that represents permission, not identity.
+
+            - Authorization server
+                - The system that issues tokens
+
+            - Resource server
+                - The API that validates token and servers data.
+
+            - JWT answers:
+                - How is a token structured and secured?
+                - JWT is just a container:
+                    - Header
+                    - Payload
+                    - Signature
+
+                - JWT says nothing about
+                    - How user logged in
+                    - who issued the token
+                    - why the token exists
+
+            - OAuth answers:
+                - Who is allowed to access what, and how do we issue token safely?
+                - OAuth defines:
+                    - How tokens are requested?
+                    - Who issues them
+                    - Who can use them
+                    - For how long           
+
+    0.4 Digital Signatures
+
+        - Digital signatures are the bridge between Cryptography and real-world trust(JWT, OAuth, HTTPS).
+        - It is a Cryptographic mechanism that proves:
+            - who created the data
+            - That the data is not modified
+        - Signing
+            - The process of using a private key to create a signature over data.
+        - Verification
+            - The process of using public key to validate:
+                - The Signature
+                - The integrity of that data
+        - Integrity
+            - Guarantee the data was not altered, even by 1 bit
+        - Authenticity
+            - Guarantee that data was created by the expected owner of the private key
+        - Non-repudiation
+            - The signer cannot deny having signed that data later
+
+        - High-level 
+            - Signing flow
+                - Data -> Hash -> Sign(hash(data), privatekey) -> Signature
+                    - Signature = Encrypt(Hash(data), PrivateKey)
+                    - Data is hashed first
+                    - Hash is signed(not raw data)
+                    - Signature is small and fixed size
+
+            - Verification flow
+                - Data -> Hash (Integrity)
+                - Signature + PublicKey -> Verify (Authenticity)
+                    - Data has matches
+                    - Signature matches
+                    - Correct public key is used
+                        1. Re-hash the received data -> hash1
+                        2. Use public key to decrypt signature -> hash2
+                        3. Compare hash1 and hash2 -> hash1 === hash2
+            - If you need secrecy -> Encryption
+            - If you need trust -> use signatures
+        
+        - Digital signature never operate on raw data, they operate on hashes.
+
+                Issuer:
+                    data
+                    ↓
+                    hash(data)
+                    ↓
+                    sign(hash, privateKey)
+                    ↓
+                    signature
+
+                Verifier:
+                    data
+                    ↓
+                    hash(data) ──────────────┐
+                                             │- compare
+                    signature + publicKey ───┘
+
+        - Example
+                SENDER (Alice)                          RECIPIENT (Bob)
+                [Document]                              [Document] + [Signature]
+                    |                                       |             |
+                    v                                       |             v
+                (Hash Function)                             |      (Alice's Public Key)
+                    |                                       |             |
+                    v                                       v             v
+                [Hash A]                             (Hash Function)  [Hash B]
+                    |                                       |             |
+                (Alice's Private Key)                       v             v
+                    |                                    [Hash C] <---> [Hash B]
+                    v                                           Compare!
+                [Signature] ---------------------------------------^
+
+        - You generate a hash from the received document.
+        - You use the public key to "open" the signature to see what the original hash was.
+        - You compare the two hashes.
+        - "The verifier does not generate a hash from the signature. Instead, the verifier extracts the original hash from the signature and compares it to a fresh hash they generate from the data".
+
+    0.5 Hashing & Password Security
+
+        1. TERMINOLOGIES
+            - Password Hashing
+                - The process of converting a password into a one-way cryptographic value for storage
+            - One-way Function
+                - Is easy to compute
+                - Is computationally infeasible to reverse
+            - Salt
+                - Random unique data added to a password before hashing
+            - Pepper
+                - A secret value added to all passwords in addition to salt, stored outside the database
+            - Rainbow table
+                - A precomputed list of common passwords and their hashes.
+            - Brute-Force Attack
+                - Systematically trying many passwords until one matches
+
+        2. What is password hashing
+            - We never store passwords. We store proofs that a password was correct. 
+            - You cannot "decrypt" a password hash
+
+            - User enters password
+                - hash(password + salt)
+                - compare with stored hash
+
+        3. Why password hashing is used?
+            - Why not encryption ?
+                - Encryption can be reversed
+                - If key leaks - all passwords leak
+            - Why hashing is correct
+                - one-way
+                - Database breach != password disclosure
+                - Limits blast radius
+            - If system can "decrypt" passwords, it is already insecure
+
+        4. Why normal hashes are not enough
+            - Algorithms like:
+                - SHA-256
+                - SHA-512
+                - MD5
+            - are:
+                - Too fast
+                - Designed for data integrity, not passwords
+            - Fast hashing = easy brute force.
+
+        5. What password hashing algorithms do differently
+            - Password safe algorithms:
+                - Are slow
+                - Are adaptive
+                - Are memory-hard(some)
+            - Example:
+                - bcrypt
+                - argon2
+                - scrypt
+
+        6. How salt protect you
+            - hash(password + uniqueSalt)
+            - Same password -> different hash per user 
+            - Rainbow tables become useless
+            - Salt:
+                - Is random
+                - Is stored with the hash
+                - Is Not secret
+            - Pepper
+                - hash(password + salt + pepper)
+                - pepper is a server secret
+                - stored in environment variables
+                - Protects against DB-only breaches
+        7. passwords are verified, not recovered
+        8. Code: ref - ./code/phase-0/passwordHashing.js
+--------------------------------------------------------------------------------------------
+Phase 1 - Authentication & Authorization Foundations
+
+    0 - Terminologies
+
+        - Authentication (AuthN)
+            - AuthN is a process which a system verifies that an entity(User or system) is genuinely who it claims to be, usually by validation credentials, such as passwords, tokens, or cryptographic proof
+            - In simple terms, Authentication establishes identity, not permissions.
+
+        - Authorization (AuthZ)
+            - AuthZ is a process which a system determines whether a already authenticated entity is allowed to perform specific action or access to specific resource
+            - AuthZ is always evaluated after authentication, and it enforces business rules and access control
+
+        - Identity (Who)
+            - Identity is the verified representation of an entity inside the system after successful authentication, typically expressed as a user Id, service account Id or client identifier
+            - It answer -> what exact entity is making this request?
+            - Identity is set of attributes, that uniquely define a person or Entity. The "Source of truth"
+            - Focus(AuthN)
+
+        - Principal (What)
+            - A Principal is the authenticated entity that is currently interacting with the system, such as a logged-in user, a backend service, or an automated client.
+            - The term "principal" is commonly used is security model to abstract both human users and machines.
+            - It is a specific representation of an identity during security sessions.
+            - Focus(AuthZ)
+            - "One identity can have multiple principals"
+
+        - Policy 
+            - A Policy is set of rules that determines whether a principal with certain attributes or permissions is allowed to perform a requested action
+            - Policies are the mechanism through which authorization decisions are enforced.
+            - a Policy is the Rule book or the Contract.
+
+        - Permission
+            - A permission is a specific, well-defined action that a principal is allowed to perform, such as reading data, modifying a resource, or deleting an entity
+
+        - Analogy
+            - Identity: Me (The human)
+            - Principal: The specific account/session representing "Me" (request.user)
+            - Role: Admin (The "Hat" the Principal is wearing) (principal.role)
+            - Policy: "The Admin Role is allowed to Read and Write, but NOT Delete." (The Rule)
+            - Permission: Read, Write (What the "Hat" allows) (read, write)
+
+        - Flow
+            - Identity (Login) -> Creates Principal (The User Object) -> Which contains a Role (Admin) -> Which grants Permissions (Read/Write/Delete).
+
+            - Example
+
+                // 1. IDENTITY: The person who logged in (e.g., Sarah)
+
+                // 2. PRINCIPAL: This 'user' object is the Principal.
+                // It is the "Actor" representing Sarah in this request.
+
+                        const principal = request.user; 
+
+                // 3. ROLE: Where does it fit? It's a property OF the Principal.
+
+                        console.log(principal.role); // Output: "Admin"
+
+                // 4. PERMISSIONS: These are granted BECAUSE of the Role.
+
+                        if (principal.role === 'Admin') {
+                            // The code allows these actions because the Role is Admin
+                            allowAccess(['read', 'write', 'delete']);
+                        }
+
+                -  {
+                        // 1. IDENTITY
+                        identity: {
+                            userId: "USR_9988",
+                            username: "sjenkins",
+                            mfaEnabled: true
+                        },
+
+                        // 2. PRINCIPAL (The Current Actor)
+                        principal: {
+                            sessionId: "session_abc123",
+                            authenticatedAt: "2023-10-27T10:00:00Z",
+                            ipAddress: "192.168.1.1",
+                            
+                            // 3. ROLES (The Groups)
+                            roles: ["ADMIN", "EDITOR"],
+
+                            // 4. POLICY (The Logic Source)
+                            // In complex systems, we often attach the "Policy ID" that 
+                            // was used to calculate the permissions.
+                            appliedPolicy: "ENTERPRISE_ADMIN_POLICY_V2",
+
+                            // 5. PERMISSIONS (The Final List)
+                            // This is the "What" that the code actually checks.
+                            can: {
+                                user_read: true,
+                                user_write: true,
+                                user_delete: true,
+                                billing_access: false  // Even an Admin might not see Billing!
+                            }
+                        }
+                    }
+
+        - Request Lifecycle
+            - Authentication middleware validates identity
+            - Identity context is attached to request
+            - Authorization logic evaluates permissions
+            - Business logic executes only if allowed
+
+        - HTTP Semantics
+            - 401 Unauthorized means the system does not know who you are
+            - 403 Forbidden means the system knows who you are but refuses the action
+
+        - Code : ref -> .code/phase-1/AuthMiddleware.js
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+x. OAuth 2.0 
+	1.1 Terminology
+	    - Resource Owner(me): Entity that can grant access to a protected resource. Typically this is end user.
+	    - Client(any app that contact access): Application requesting access to a protected resource on behalf of the Resource Owner
+	    - Resource Server(google.contacts.api): Server hosting the protected resources. This is the API you want to access
+	    - Authorization Server(accounts.google.com): Server that authenticates the Resource Owner and issues Access Tokens after getting proper authentication. In this case AuthO.
+	    - Authorization grant: That proves User approved/granted access for protected resource
+	    - Redirect URI : callback url, Once AuthZ done, It will redirect to redirect_uri
+	    - Access token: It is a secure, temporary digital key or credential that allows an application to access specific resources (like an API or data) on behalf of a user, without needing their password repeatedly
+	    - User Agent: Agent used by the resource owner to interact with the client(example, a browser or a native application)
+		- Scope: It defines the specific actions application can be allowed to do on user's behalf
+		- Back channel (highly secure channel): Backend server
+		- Front channel (less secure channel): Frontend App
+
+	1.2 Flows 
+		- Authorization code(front channel + back channel)
+		- Implicit(front channel only)
+
+		- Resource owner password credentials(back channel only)
+		- Client credentials(back channel only)
+
+2. Problems with OAuth 2.o for authentication
+	- No standard way to get the user's information
+	- Every implementation is a little different
+	- No common set of scopes
+
+3. OAuth 2.0 and OpenID connect
+	- OpenID Connect is for authentication
+	- OAuth 2.0 is for authorization
+--------------------------------------------------------------------------------------------
+
+
