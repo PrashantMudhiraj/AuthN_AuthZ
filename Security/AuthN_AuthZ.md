@@ -600,7 +600,7 @@ SECURITY GUARANTEES
 
 ```
 
-**Code: ref - ./code/phase-0/passwordHashing.js**
+**Code**: [passwordHashing.js](./code/phase-0/passwordHashing.js)
 
 # Phase 1 – Authentication & Authorization Foundations
 
