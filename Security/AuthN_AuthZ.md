@@ -30,6 +30,10 @@
 
 ## 0.1 Terminologies
 
+### Cryptography
+
+- Cryptography is the science and practice of securing information by transforming it from readable plaintext into unreadable ciphertext using mathematical algorithms and keys
+
 ### Plain Text
 
 - Data in its original, readable form.
@@ -223,7 +227,6 @@ console.log(decrypt(secret));
     - Ciphertext -> Decrypt(key) -> Plaintext
 - **Pros:** Fast, efficient, low CPU cost.
 - **Cons:** The "Big Problem" — How do two parties securely share the same secret key? If the key is stolen, all data is compromised, Attackers can decrypt everything
-- **Code:** ./code/phase-0/symmetricCryptography.js
 
 ### AES (Advanced Encryption Standard)
 
@@ -269,7 +272,47 @@ console.log(decrypt(secret));
         - If they match -> decrypt
         - If not -> throw error
 
-- **Code : refer ./code/phase-0/symmetricCryptography.js**
+---
+
+### Complete picture
+
+- `getAuthTag` (The Creation — **Sender Side**)
+    - This happens at the end of the **Encryption** process.
+    - **Action:** After the computer finishes turning your "hello" into encrypted hex, it generates the final mathematical fingerprint.
+    - **The Result:** You call `getAuthTag()` to "pick up" this fingerprint (usually 16 bytes).
+    - **Your Job:** You must send this tag along with the encrypted message to the recipient. Without it, they have no way to verify the data.
+
+- `setAuthTag` (The Target — **Receiver Side**)
+    - This happens at the start of the **Decryption** process.
+    - **Action:** The receiver takes the tag they received and stores it in the `decipher` object.
+    - **The Status:** The computer just "holds onto it" and waits. It hasn't checked anything yet; it just knows what the "Target" fingerprint should look like.
+
+- `update` (The Calculation — **Receiver Side**)
+    - **Action:** As the computer decrypts the ciphertext, it calculates its own "actual" fingerprint byte-by-byte from the data it is currently processing.
+    - **The Status:** It is building a new fingerprint from scratch to see if it matches the one you provided in Step 2.
+- `final` (The Comparison — **Receiver Side**)
+    - **Action:** The computer puts the two fingerprints side-by-side:
+        - **Tag A:** The one you "picked up" via **`getAuthTag`** and "stored" via **`setAuthTag`**.
+        - **Tag B:** The one the computer just **calculated** itself during `update`.
+    - **The Result:**
+        - **If they are identical:** Everything is fine. The data is authentic and hasn't been changed.
+        - **If they are different:** It throws an error (`Unsupported state`) and prevents the data from being trusted.
+
+### Summary Table
+
+| Method       | Side     | Purpose                       | Analogy                                           |
+| :----------- | :------- | :---------------------------- | :------------------------------------------------ |
+| _getAuthTag_ | Sender   | **Create** the proof.         | Printing the "official weight" on a shipping box. |
+| _setAuthTag_ | Receiver | **Store** the expected proof. | Telling the guard, "The box should weigh 10kg."   |
+| _update_     | Receiver | **Calculate** the new proof.  | The guard putting the box on a scale.             |
+| _final_      | Receiver | **Compare** the proofs.       | The guard checking if the scale matches the 10kg. |
+
+This is why **Signature = Integrity + Authenticity**.
+
+- **Integrity:** If someone changed the message, the `update` calculation would result in a different tag, and `final` would fail.
+- **Authenticity:** Since the tag is created using your secret Key, only someone with that Key could have created a tag that matches.
+
+**Code:** [symmetricCryptography.js](./code/phase-0/symmetricCryptography.js)
 
 ---
 
@@ -279,6 +322,7 @@ console.log(decrypt(secret));
 - System using two different keys: **Public Key** and **Private Key**.
     - **Public Key:** Shared openly; used to encrypt data for the owner or verify signatures.
     - **Private Key:** Kept secret; used to decrypt data or create signatures.
+- They are generated together and cannot exist independently
 
 ### Why it's used
 
@@ -302,8 +346,6 @@ console.log(decrypt(secret));
 - This relies on:
     - Large prime factorization(RSA)
     - Elliptic curve math(ECC)
-
-- Code : refer ./code/phase-0/asymmetricCryptography.js
 
 ### Questions & Real World Usage
 
@@ -336,7 +378,7 @@ console.log(decrypt(secret));
         - Server decrypts with private key
     - Now both share a symmetric session key.
 
-- **Code : refer ./code/phase-0/asymmetricCryptography.js**
+- **Code** : [asymmetricCryptography.js](./code/phase-0/asymmetricCryptography.js)
 
 ### JWT vs OAuth
 
