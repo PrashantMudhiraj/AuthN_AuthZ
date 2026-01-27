@@ -23,6 +23,7 @@
     - [1.11 HTTP Semantics](#111-http-semantics)
 - [Phase 2 – JWT (Token-Based Security)](#phase-2---jwt-token-based-security)
     - [2.1 Terminologies](#21-terminologies)
+    - [2.2 What is a JSON Web Token?](#22-what-is-a-json-web-token)
 - [Phase 3 – OAuth 2.0 (Indexed)](#phase-3---oauth-20-indexed)
 - [Phase 4 – OpenID Connect (Indexed)](#phase-4---openid-connect-indexed)
 - [Phase 5 – Express Implementation (Indexed)](#phase-5---express-implementation-indexed)
@@ -740,7 +741,7 @@ if (principal.role === "Admin") {
 - 401 Unauthorized means the system does not know who you are
 - 403 Forbidden means the system knows who you are but refuses the action
 
-#### 1.12 Code : [AuthMiddleware.js](code/phase-1/AuthMiddleware.js)
+#### 1.12 Code : [AuthMiddleware.js](./code/phase-1/AuthMiddleware.js)
 
 ```mermaid
 graph TD
@@ -753,6 +754,55 @@ graph TD
 
 # Phase 2 - JWT (Token-Based Security)
 
-> A JSON Web Token is a Compact, URL-safe string that represents a set of claims between two parties. The information inside the JWT can be trusted because it was signed using cryptography. JWTs are commonly used to represent authenticated users and <abbr title=" Delegated access is a security mechanism that allows one entity (the 'delegate' or 'proxy') to perform actions or access resources on behalf of another (the 'owner' or 'delegator') without sharing the owner's primary login credentials.">_Delegated access_</abbr> in web application and APIs
+_A JSON Web Token is a Compact, URL-safe string that represents a set of claims between two parties. The information inside the JWT can be trusted because it was signed using cryptography. JWTs are commonly used to represent authenticated users and [*Delegated access*](#a-delegated-access) in web application and APIs_
 
 ## 2.1 Terminologies
+
+### Token
+
+A token is piece of data issued by a server and represented by a client as a proof of authentication and authorization. In JWT-based systems, the token itself carries the information to identify the user and validate trust
+
+### Claim
+
+A Claim is a piece of information asserted about a subject. In JWTs, claims are stored inside the payload as a name/value pairs. The name of the claim is always string and value can be any JSON value such as string, number, boolean, array or object.
+
+When discussing JWTs, the word "claim" refers to the claim name (for example, sub, exp or role)
+
+### Subject (sub)
+
+The Subject claim identifies the entity that the token is about. In most applications, this is the unique identifier of the authenticated user.
+
+### Issuer (iss)
+
+The Issuer claim identifies the system that issues and signed the JWT. This is typically Authentication or Authorization server
+
+### Audience (aud)
+
+The audience claim specifies which service or API the token is intended for. This prevents a token issued for one server from being reused by another server.
+
+### Expiration (exp)
+
+The expiration claim defines the time after which the token is no longer valid. Even if the signature is valid, an expired token must be rejected.
+
+### Signature
+
+The signature is cryptographic value that ensure the token was issued by a trusted source and that its content have not been modified since issuance.
+
+## 2.2 What is a JSON Web Token?
+
+A JSON Web Token is a _self-contained_ mechanism for securely transmitting information between parties. Is allows a server to trust the claim about a user without storing session state. The server validate the token by verifying the certificate and checking the claims, rather than querying a database or session store on every request
+
+JWTs are widely used in modern authentication systems because they are lightweight, scalable, and well-suited for distributed architectures
+
+**Self-Contained**:
+A JWT is described as self-contained because it includes all the information required to understand and validate the token. This includes both the claim about the subject and the cryptographic signature that proves the token's integrity.
+
+Because of this design, a server can authentication and authorize a request using only the token itself, without relying on server-side session storage.
+
+---
+
+# Definitions
+
+### A. Delegated access
+
+Delegated access is a security mechanism that allow an entity (the "delegate" or "proxy"), to perform an action or access a resource on behave of another (owner or delegator), without sharing owner primary login credentials
