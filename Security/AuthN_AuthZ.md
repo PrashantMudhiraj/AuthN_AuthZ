@@ -739,7 +739,7 @@ if (principal.role === "Admin") {
 - 401 Unauthorized means the system does not know who you are
 - 403 Forbidden means the system knows who you are but refuses the action
 
-#### 1.12 Code : ref -> .code/phase-1/AuthMiddleware.jse
+#### 1.12 Code : [AuthMiddleware.js](code/phase-1/AuthMiddleware.js)
 
 ```mermaid
 graph TD
