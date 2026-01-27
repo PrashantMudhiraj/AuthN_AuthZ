@@ -276,27 +276,24 @@ console.log(decrypt(secret));
 
 ### Complete picture
 
-- `getAuthTag` (The Creation — **Sender Side**)
+1. `getAuthTag` (The Creation — **Sender Side**)
     - This happens at the end of the **Encryption** process.
     - **Action:** After the computer finishes turning your "hello" into encrypted hex, it generates the final mathematical fingerprint.
     - **The Result:** You call `getAuthTag()` to "pick up" this fingerprint (usually 16 bytes).
     - **Your Job:** You must send this tag along with the encrypted message to the recipient. Without it, they have no way to verify the data.
 
-- `setAuthTag` (The Target — **Receiver Side**)
+2. `setAuthTag` (The Target — **Receiver Side**)
     - This happens at the start of the **Decryption** process.
     - **Action:** The receiver takes the tag they received and stores it in the `decipher` object.
     - **The Status:** The computer just "holds onto it" and waits. It hasn't checked anything yet; it just knows what the "Target" fingerprint should look like.
 
-- `update` (The Calculation — **Receiver Side**)
-    - **Action:** As the computer decrypts the ciphertext, it calculates its own "actual" fingerprint byte-by-byte from the data it is currently processing.
-    - **The Status:** It is building a new fingerprint from scratch to see if it matches the one you provided in Step 2.
-- `final` (The Comparison — **Receiver Side**)
+3. `update` (The Calculation — **Receiver Side**) - **Action:** As the computer decrypts the ciphertext, it calculates its own "actual" fingerprint byte-by-byte from the data it is currently processing. - **The Status:** It is building a new fingerprint from scratch to see if it matches the one you provided in Step 2.
+
+4. `final` (The Comparison — **Receiver Side**) -
     - **Action:** The computer puts the two fingerprints side-by-side:
         - **Tag A:** The one you "picked up" via **`getAuthTag`** and "stored" via **`setAuthTag`**.
         - **Tag B:** The one the computer just **calculated** itself during `update`.
-    - **The Result:**
-        - **If they are identical:** Everything is fine. The data is authentic and hasn't been changed.
-        - **If they are different:** It throws an error (`Unsupported state`) and prevents the data from being trusted.
+    - **The Result:** - - **If they are identical:** Everything is fine. The data is authentic and hasn't been changed. - **If they are different:** It throws an error (`Unsupported state`) and prevents the data from being trusted.
 
 ### Summary Table
 
@@ -359,12 +356,21 @@ This is why **Signature = Integrity + Authenticity**.
     - They are signed claims
     - OAuth Token Flow (simplified)
 
-        ```text
-            [Authorization server]
-                |_ Signs token with private key
+        ```mermaid
+            sequenceDiagram
+                participant AS as Authorization Server
+                participant Client
+                participant RS as Resource Server
 
-            [Resource server]
-                |_ Verifies token with public ket
+                Note over AS: 1. Generate Token
+                Note over AS: 2. Sign Token (Private Key)
+                AS->>Client: Issued Signed JWT
+
+                Client->>RS: Request + JWT
+
+                Note over RS: 3. Verify Signature (Public Key)
+                Note over RS: 4. Check Identity/Permissions
+                RS-->>Client: Success (Resource Access)
         ```
 
 - **Why HTTPS is Possible:** Uses a TLS Handshake where the server sends a Public Key, the client encrypts a symmetric session key with it, and the server decrypts it with the Private Key.
