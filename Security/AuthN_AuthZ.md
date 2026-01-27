@@ -21,7 +21,8 @@
     - [1.9 Express middleware responsibility code example](#19-express-middleware-responsibility-code-example)
     - [1.10 Request Lifecycle](#110-request-lifecycle)
     - [1.11 HTTP Semantics](#111-http-semantics)
-- [Phase 2 – JWT (Indexed)](#phase-2---jwt-indexed)
+- [Phase 2 – JWT (Token-Based Security)](#phase-2---jwt-token-based-security)
+    - [2.1 Terminologies](#21-terminologies)
 - [Phase 3 – OAuth 2.0 (Indexed)](#phase-3---oauth-20-indexed)
 - [Phase 4 – OpenID Connect (Indexed)](#phase-4---openid-connect-indexed)
 - [Phase 5 – Express Implementation (Indexed)](#phase-5---express-implementation-indexed)
@@ -747,3 +748,11 @@ graph TD
     B -- Yes --> C[Access Granted]
     B -- No --> D[Access Denied]
 ```
+
+---
+
+# Phase 2 - JWT (Token-Based Security)
+
+> A JSON Web Token is a Compact, URL-safe string that represents a set of claims between two parties. The information inside the JWT can be trusted because it was signed using cryptography. JWTs are commonly used to represent authenticated users and <abbr title=" Delegated access is a security mechanism that allows one entity (the 'delegate' or 'proxy') to perform actions or access resources on behalf of another (the 'owner' or 'delegator') without sharing the owner's primary login credentials.">_Delegated access_</abbr> in web application and APIs
+
+## 2.1 Terminologies
