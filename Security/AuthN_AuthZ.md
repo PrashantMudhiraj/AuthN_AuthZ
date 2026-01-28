@@ -24,6 +24,11 @@
 - [Phase 2 – JWT (Token-Based Security)](#phase-2---jwt-token-based-security)
     - [2.1 Terminologies](#21-terminologies)
     - [2.2 What is a JSON Web Token?](#22-what-is-a-json-web-token)
+    - [2.3 JWT Structure](#23-jwt-structure)
+        - [2.3.1 JWT Header](#231-jwt-header)
+        - [2.3.2 JWT Payload (Claims)](#232-jwt-payload-claims)
+        - [2.3.3 JWT Signature](#233-jwt-signature)
+    - [2.4 How JWT Verification Works](#24-how-jwt-verification-works)
 - [Phase 3 – OAuth 2.0 (Indexed)](#phase-3---oauth-20-indexed)
 - [Phase 4 – OpenID Connect (Indexed)](#phase-4---openid-connect-indexed)
 - [Phase 5 – Express Implementation (Indexed)](#phase-5---express-implementation-indexed)
@@ -790,7 +795,7 @@ The signature is cryptographic value that ensure the token was issued by a trust
 
 ## 2.2 What is a JSON Web Token?
 
-A JSON Web Token is a _self-contained_ mechanism for securely transmitting information between parties. Is allows a server to trust the claim about a user without storing session state. The server validate the token by verifying the certificate and checking the claims, rather than querying a database or session store on every request
+A JSON Web Token is a **_self-contained_** mechanism for securely transmitting information between parties. Is allows a server to trust the claim about a user without storing session state. The server validate the token by verifying the certificate and checking the claims, rather than querying a database or session store on every request
 
 JWTs are widely used in modern authentication systems because they are lightweight, scalable, and well-suited for distributed architectures
 
@@ -798,6 +803,158 @@ JWTs are widely used in modern authentication systems because they are lightweig
 A JWT is described as self-contained because it includes all the information required to understand and validate the token. This includes both the claim about the subject and the cryptographic signature that proves the token's integrity.
 
 Because of this design, a server can authentication and authorize a request using only the token itself, without relying on server-side session storage.
+
+## 2.3 JWT Structure
+
+A JWT is composed of three parts, separated by dots(.)
+
+_`header.payload.signature`_
+
+Each part is Base64URL-encoded and has specific responsibility
+
+### 2.3.1 JWT Header
+
+The header contains the metadata about the token, including the type of the token and cryptographic algorithm used to sign it.
+
+```json
+{
+    "alg": "RS256",
+    "typ": "JWT"
+}
+```
+
+- The <kbd>alg</kbd> field indicates the signing algorithm, such as RS256(RSA with SHA-256)
+- The <kbd>typ</kbd> field identifies the token types as a JWT.
+
+> Note : The Server must not blindly trust the <kbd>alg</kbd> value from the token. Allowed algorithm must be enforced by the server configurations
+
+### 2.3.2 JWT Payload (Claims)
+
+The payload contains the claims, which are statements about the subject of the token. or The Payload contains the information about the entity (typically user) and additional entity attributes. which are called claims.
+
+```json
+{
+    "sub": "12345",
+    "name": "Prashant",
+    "admin": true,
+    "iat": 17100000,
+    "exp": 17103600
+}
+```
+
+This payload assert the following:
+
+- The subject of the token is the user with ID <kbd>12345</kbd>
+- The user's name is Prashant
+- The user has administrative privileges
+- The token was issued at a specific time
+- The token expires at a specific time
+
+> #### _Important Rule About the Payload_
+>
+> The JWT payload is not encrypted, It is only Base64RL-encoded, which means anyone who has the token can decode and read the claims
+>
+> For this reason:
+>
+> - Sensitive data such as passwords or secrets must never be stored in a JWT payload
+> - JWTs should only contain information that is safe to expose.
+
+### Types of JWT Claims
+
+JWT Claims are generally categorized into three types
+
+#### 1. Registered Claims
+
+Registered claims are predefined claim names which are defined by JWT specification. They are optional but have standard meaning when used.
+
+_Examples include_:
+
+- <kbd>iss</kbd> (issuer)
+- <kbd>sub</kbd> (subject)
+- <kbd>aud</kbd> (audience)
+- <kbd>exp</kbd> (expiration)
+- <kbd>iat</kbd> (issued at)
+
+#### 2. Public claims
+
+Public claims are claims intended to shared across systems. These claims should be standardize or namespaced to avoid collisions.
+
+_Examples include_:
+
+- email
+- profile
+
+#### 3. Private claims
+
+Private claims are custom claims which are defined by your application. They are used to carry application specific information.
+
+```json
+{
+    "role": "manager",
+    "department": "sales"
+}
+```
+
+### 2.3.3 JWT Signature
+
+The Signature is the most important part of the JWT because it established trust.
+
+The Signature is created by signing the encoded header and payload using a cryptographic key.
+
+```text
+Signature = Sign(
+    base64url(header) + "." + base64url(payload),
+    privateKey
+)
+```
+
+The Signature ensures:
+
+1. The token was issued by a trusted issuer.
+2. The token has not been modified
+
+_If any part of the token changes, signature verification fails_
+
+---
+
+## 2.4 How JWT Verification Works
+
+When a server receives a JWT, it performs the following steps:
+
+1. Decode the header and payload.
+2. Verify the signature using a trusted key. (Similar to Digital Signature verification)
+3. validate registered claims such as exp, iss and aud.
+4. Accept the token only if all validations succeed
+
+_If any step fails, the token is rejected_
+
+```javascript
+import jwt from "jsonwebtoken";
+
+const payload = jwt.verify(token, publicKey, {
+    issuer: "https://auth.example.com",
+    audience: "orders-api",
+});
+```
+
+This Code:
+
+- Verifies the token signature
+- Ensures the token comes from the expected issuer(iss)
+- Ensures the token is intended for the correct audience(aud)
+- Returns the decoded claims if valid
+
+## 2.5 What JWT Is an Is Not Responsible For
+
+- JWT is responsible for:
+    - Securely carrying claims
+    - Proving token integrity
+    - Enforcing expiration
+- JWT is not responsible for
+    - Authorization decisions
+    - Logout handling
+    - Token storage security
+    - Preventing token that
 
 ---
 
