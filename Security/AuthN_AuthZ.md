@@ -455,29 +455,35 @@ SENDER (Alice)                      RECIPIENT (Bob)
 
 ## 0.5 Hashing & Password Security
 
-### 1. Terminologies
+## 1. Terminologies
 
-- **Password Hashing**
-    - The process of converting a password into a one-way cryptographic value for storage.
+### Password Hashing
 
-- **One-way Function**
-    - Easy to compute.
-    - Computationally infeasible to reverse.
+The process of converting a password into a one-way cryptographic value for storage.
 
-- **Salt**
-    - Random, unique data added to a password before hashing.
+### One-way Function
 
-- **Pepper**
-    - A secret value added to all passwords in addition to salt.
-    - Stored outside the database.
+Easy to compute.
+Computationally infeasible to reverse.
 
-- **Rainbow Table**
-    - A precomputed list of common passwords and their hashes.
+### Salt
 
-- **Brute-Force Attack**
-    - Systematically trying many passwords until one matches.
+Random, unique data added to a password before hashing.
 
-### 2. What Is Password Hashing
+### Pepper
+
+A secret value added to all passwords in addition to salt.
+Stored outside the database.
+
+### Rainbow Table
+
+A precomputed list of common passwords and their hashes.
+
+### Brute-Force Attack
+
+Systematically trying many passwords until one matches.
+
+## 2. What Is Password Hashing
 
 - We never store passwords; we store **proofs that a password was correct**.
 - A password hash **cannot be decrypted**.
@@ -955,6 +961,127 @@ This Code:
     - Logout handling
     - Token storage security
     - Preventing token that
+
+## 2.6 HS256 vs RS256
+
+_*Signing Algorithm* defines how the JWT signature is created and verified. It specifies_
+
+- _The cryptographic method_
+- _The type of key used_
+- _How integrity and authenticity are enforced_
+
+## 2.6.1 Terminologies
+
+### HMAC (Hash-Based Message Authenticated Code)
+
+- A cryptographic technique that combines a hash function and a secret key to produce a signature.
+
+### SHA-256 (Secure Hash Algorithm)
+
+- A secure hash algorithm that produces a fixed 256-bit hash value.
+
+### RSA
+
+- An asymmetric cryptographic algorithm that uses a public key and private key pair.
+
+### Signing key
+
+- The secret or private key used to generate a JWT signature.
+
+### Verification Key
+
+- The key used to verify that the JWT signature is valid.
+
+## 2.6.2 What are HS256 and RS256?
+
+- HS256 and RS256 are JWT signing algorithms
+- Their job is not encryption
+- Their job is to prove that the token was issued by trusted authority and was not modified.
+
+## 2.6.3 Internal Working
+
+### _HS256(HMAC + SHA+256)_
+
+HS256 uses one single secret key.
+
+- The same key is used to sign the token
+- The same key is used to verify the token
+
+This is symmetric cryptography.
+
+**_Flow_**
+
+1. Server creates JWT header + payload
+2. Server hashes them using SHA-256
+3. Server signs the hash using a shared secret
+4. Signature is appended to the JWT
+
+**_During verification_**
+
+- The API recalculates the signature using the same secret
+- If signature matches, the token is trusted
+
+```json
+{
+    "alg": "HS256",
+    "typ": "JWT"
+}
+```
+
+> **_critical Implication_**
+>
+> - Anyone who can verify the token can also sign new tokens, becaus the same secret is used
+>
+> This is extremely important.
+
+### _RS256(RSA + SHA+256)_
+
+RS256 uses a Key pair:
+
+- Private key -> used to sign the token
+- Public key -> used to verify the token
+
+This is asymmetric cryptography.
+
+**_Flow_**
+
+1. Authorization server sign the JWT using its private key
+2. API receives the JWT
+3. API verifies the signature using the public key
+4. If verification succeeds, token it trusted
+
+```json
+{
+    "alg": "RS256",
+    "typ": "JWT"
+}
+```
+
+> **_critical Implication_**
+>
+> - APIs cannot create tokens
+> - APIs can only verify tokens
+> - Token issuance authority is strictly controlled
+>
+> This separation is intentional and powerful
+
+## 2.6.4 Why AuthO strongly Recommends RS256
+
+According to AuthO:
+
+#### HS256 problems in real systems
+
+    - Secret must be shared across services
+    - Secret leakage compromises entire system
+    - Difficult key rotation
+    - Risk of algorithm confusion attacks
+
+### RS257 Advantages
+
+    - Private key never leaves auth server
+    - Public key can safely distributed
+    - Multiple APIs can verify token independently
+    - Supports zero-trust and microservice architectures
 
 ---
 
