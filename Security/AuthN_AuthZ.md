@@ -1000,7 +1000,7 @@ _*Signing Algorithm* defines how the JWT signature is created and verified. It s
 
 ## 2.6.3 Internal Working
 
-### _HS256(HMAC + SHA+256)_
+### _HS256(HMAC + SHA-256)_
 
 HS256 uses one single secret key.
 
@@ -1076,12 +1076,143 @@ According to AuthO:
     - Difficult key rotation
     - Risk of algorithm confusion attacks
 
-### RS257 Advantages
+#### RS257 Advantages
 
     - Private key never leaves auth server
     - Public key can safely distributed
     - Multiple APIs can verify token independently
     - Supports zero-trust and microservice architectures
+
+## 2.7 Token Lifecycle
+
+### 2.7.1 Token Issuance
+
+Token issuance is the process by which authorization server creates a JWT and gives it to a client after successfully verifying the user's identity.
+
+- Issuance happens only once per authenticated event, not on every request.
+
+- Token issuance exist to replace repeated credential exchange with a signal proof of authentication.
+
+- Once issued, the token represents the authenticated identity for a limited time.
+
+_When issuance occurs, the authorization server_:
+
+1. Confirms the user's identity (for example, by verifying a password hash)
+2. Constructs a payload containing identity and security claims.
+3. Cryptographically signs the payload using a signing key
+4. Returns the resulting JWT to the client
+
+```json
+{
+    "sub": "user_42",
+    "iss": "https://auth.example.com/",
+    "aud": "orders-api",
+    "iat": 1700000000,
+    "exp": 1700003600
+}
+```
+
+### 2.7.2 Token Usage
+
+Token Usage is the act of sending the issued JWT along with each API to prove identity and permissions.
+
+The token it typically sent in the <kbd>Authorization</kbd> HTTP header.
+
+_What happen internally during usage_
+For every protected request, the API:
+
+1. Extracts the token form the request
+2. Verifies the token signature
+3. Validates required claims
+4. Builds an authentication context
+5. Allows or rejects the request.
+
+This process occurs for every request, not once per login
+
+### 2.7.3 Token Expiration
+
+Token expiration defines the maximum lifetime of a JWT using the <kbd>exp</kbd> claim.
+
+Once the expiration time is reached, the token must be rejected regardless of whether it was valid before.
+
+_How expiration is enforced technically_
+
+During validation, the API compares:
+
+- The current serve time
+- The <kbd>exp</kbd> value in the token.
+
+If the current time is greater than than <kbd>exp</kbd>, the token is rejected immediately.
+
+### 2.7.4 Token Invalidation
+
+Token invalidation means making a token unusable before its expiration time.
+
+This is commonly expected during logout or account companies
+
+_How systems handle invalidation conceptually_
+
+In practice, system rely on strategies such as:
+
+- Short-lived access tokens
+- Server-side deny lists
+- Token version checks
+- Refresh token rotation
+
+These mechanisms introduce controlled state, which we will cover in later phase.
+
+```mermaid
+
+sequenceDiagram
+    participant User
+    participant Client
+    participant AuthServer as Authorization Server
+    participant API as Resource Server
+
+    User->>Client: Submit login credentials
+    Client->>AuthServer: Authentication request
+    AuthServer->>AuthServer: Verify identity
+    AuthServer-->>Client: Issue signed JWT
+
+    loop Each API request
+        Client->>API: Request with Authorization Bearer JWT
+        API->>API: Verify signature
+        API->>API: Validate exp iss aud
+        API-->>Client: Authorized response
+    end
+
+    Note over Client,API: Token remains valid until expiration time
+
+    API->>API: Current time exceeds exp
+    API-->>Client: Reject request (token expired)
+
+    Note over AuthServer,API: Early invalidation requires extra state
+    Note over AuthServer: Examples: denylist, token version, rotation
+```
+
+## 2.8 Token Types
+
+### 2.8.1 Terminologies
+
+#### Token Type
+
+A token type describes the purpose for which a token is issued and how it is expected to be used.
+
+#### Access Token
+
+An Access token is a token used by a client to **access a protected API**.
+
+#### ID Token
+
+An ID token is a token used to **prove that a user has authenticated and to carry user identity information**.
+
+#### Refresh Token
+
+A refresh token is a token used to **obtain new access tokens without re-authenticating the user**.
+
+_These names come directly from OAuth 2.0 and OpenID Connect, which AuthO implements_
+
+##check
 
 ---
 
