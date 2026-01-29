@@ -2,36 +2,84 @@
 
 ## Table of Contents
 
-- [Phase 0 – Cryptography Foundations](#phase-0---cryptography-foundations)
-    - [0.1 Terminologies](#01-terminologies)
-    - [0.2 Symmetric Cryptography](#02-symmetric-cryptography)
-    - [0.3 Asymmetric Cryptography](#03-asymmetric-cryptography)
-    - [0.4 Digital Signatures](#04-digital-signatures)
-    - [0.5 Hashing & Password Security](#05-hashing--password-security)
+### [Phase 0 – Cryptography Foundations](#phase-0---cryptography-foundations)
 
-- [Phase 1 – Authentication & Authorization Foundations](#phase-1---authentication--authorization-foundations)
-    - [1.1 Authentication (AuthN)](#11-authentication-authn)
-    - [1.2 Authorization (AuthZ)](#12-authorization-authz)
-    - [1.3 Identity (Who)](#13-identity-who)
-    - [1.4 Principal (What)](#14-principal-what)
-    - [1.5 Policy](#15-policy)
-    - [1.6 Permission](#16-permission)
-    - [1.7 Analogy](#17-analogy)
-    - [1.8 Flow](#18-flow)
-    - [1.9 Express middleware responsibility code example](#19-express-middleware-responsibility-code-example)
-    - [1.10 Request Lifecycle](#110-request-lifecycle)
-    - [1.11 HTTP Semantics](#111-http-semantics)
-- [Phase 2 – JWT (Token-Based Security)](#phase-2---jwt-token-based-security)
-    - [2.1 Terminologies](#21-terminologies)
-    - [2.2 What is a JSON Web Token?](#22-what-is-a-json-web-token)
-    - [2.3 JWT Structure](#23-jwt-structure)
-        - [2.3.1 JWT Header](#231-jwt-header)
-        - [2.3.2 JWT Payload (Claims)](#232-jwt-payload-claims)
-        - [2.3.3 JWT Signature](#233-jwt-signature)
-    - [2.4 How JWT Verification Works](#24-how-jwt-verification-works)
-- [Phase 3 – OAuth 2.0 (Indexed)](#phase-3---oauth-20-indexed)
-- [Phase 4 – OpenID Connect (Indexed)](#phase-4---openid-connect-indexed)
-- [Phase 5 – Express Implementation (Indexed)](#phase-5---express-implementation-indexed)
+- [0.1 Terminologies](#01-terminologies)
+- [0.2 Symmetric Cryptography](#02-symmetric-cryptography)
+    - [AES (Advanced Encryption Standard)](#aes-advanced-encryption-standard)
+    - [Authentication Tag (AuthTag) & GCM](#authentication-tag-authtag--gcm)
+    - [Summary Table (getAuthTag vs setAuthTag)](#summary-table)
+- [0.3 Asymmetric Cryptography](#03-asymmetric-cryptography)
+- [0.4 Digital Signatures](#04-digital-signatures)
+- [0.5 Hashing & Password Security](#05-hashing--password-security)
+
+### [Phase 1 – Authentication & Authorization Foundations](#phase-1---authentication--authorization-foundations)
+
+- [1.1 Authentication (AuthN)](#11-authentication-authn)
+- [1.2 Authorization (AuthZ)](#12-authorization-authz)
+- [1.3 Identity (Who)](#13-identity-who)
+- [1.4 Principal (What)](#14-principal-what)
+- [1.5 Policy](#15-policy)
+- [1.6 Permission](#16-permission)
+- [1.7 Analogy](#17-analogy)
+- [1.8 Flow](#18-flow)
+- [1.9 Express middleware responsibility code example](#19-express-middleware-responsibility-code-example)
+- [1.10 Request Lifecycle](#110-request-lifecycle)
+- [1.11 HTTP Semantics](#111-http-semantics)
+- [1.12 Code Example](#112-code--authmiddlewarejs)
+
+### [Phase 2 – JWT (Token-Based Security)](#phase-2---jwt-token-based-security)
+
+- [2.1 Terminologies](#21-terminologies)
+- [2.2 What is a JSON Web Token?](#22-what-is-a-json-web-token)
+- [2.3 JWT Structure](#23-jwt-structure)
+    - [2.3.1 JWT Header](#231-jwt-header)
+    - [2.3.2 JWT Payload (Claims)](#232-jwt-payload-claims)
+    - [2.3.3 JWT Signature](#233-jwt-signature)
+- [2.4 How JWT Verification Works](#24-how-jwt-verification-works)
+- [2.5 What JWT Is and Is Not Responsible For](#25-what-jwt-is-an-is-not-responsible-for)
+- [2.6 HS256 vs RS256](#26-hs256-vs-rs256)
+    - [2.6.1 Terminologies](#261-terminologies)
+    - [2.6.2 What are HS256 and RS256?](#262-what-are-hs256-and-rs256)
+    - [2.6.3 Internal Working](#263-internal-working)
+    - [2.6.4 Why Auth0 strongly Recommends RS256](#264-why-autho-strongly-recommends-rs256)
+- [2.7 Token Lifecycle](#27-token-lifecycle)
+    - [2.7.1 Token Issuance](#271-token-issuance)
+    - [2.7.2 Token Usage](#272-token-usage)
+    - [2.7.3 Token Expiration](#273-token-expiration)
+    - [2.7.4 Token Invalidation](#274-token-invalidation)
+- [2.8 Token Types](#28-token-types)
+    - [2.8.1 Terminologies](#281-terminologies)
+    - [2.8.2 Access Token](#282-access-token)
+    - [2.8.3 ID Token (OIDC)](#283-id-token-oidc)
+    - [2.8.4 Refresh Token](#284-refresh-token)
+    - [2.8.5 Real-World Token Separation](#285-real-world-token-separation)
+- [2.9 Secure Token Storage](#29-secure-token-storage)
+    - [2.9.1 Terminologies](#291-terminologies)
+    - [2.9.2 What Secure Token Storage Means](#292-what-secure-token-storage-means)
+    - [2.9.3 Why Token Storage is a Security problem](#293-why-token-storage-is-a-security-problem)
+    - [2.9.4 Storage Options and Risks](#294-storage-options-and-risks)
+        - [A. LocalStorage](#a-localstorage)
+        - [B. SessionStorage](#b-sessionstorage)
+        - [C. Cookies (Without Security Flags)](#c-cookies-without-security-flags)
+        - [D. HttpOnly Cookies (Recommended)](#d-httponly-cookies-recommended)
+        - [E. SameSite Attribute (CSRF Mitigation)](#e-samesite-attributecsrf-mitigation)
+    - [Real-World Secure Patterns](#real-world-secure-patterns)
+
+### [Phase 3 – OAuth 2.0](#phase-3---oauth-20-indexed)
+
+### [Phase 4 – OpenID Connect](#phase-4---openid-connect-indexed)
+
+### [Phase 5 – Express Implementation](#phase-5---express-implementation-indexed)
+
+### [Definitions](#definitions)
+
+- [A. Delegated Access](#a-delegated-access)
+- [B. Cookies](#b-cookies)
+
+---
+
+**Note on Navigation:** You can paste this index at the top of your file. It uses relative fragment identifiers to allow quick jumping to any section within the document.
 
 # Phase 0 - Cryptography Foundations
 
@@ -1186,31 +1234,269 @@ sequenceDiagram
     API->>API: Current time exceeds exp
     API-->>Client: Reject request (token expired)
 
-    Note over AuthServer,API: Early invalidation requires extra state
+    Note over AuthServer,API:  Early invalidation requires extra state
     Note over AuthServer: Examples: denylist, token version, rotation
 ```
 
 ## 2.8 Token Types
 
-### 2.8.1 Terminologies
+## 2.8.1 Terminologies
 
-#### Token Type
+### Token Type
 
 A token type describes the purpose for which a token is issued and how it is expected to be used.
 
-#### Access Token
+### Access Token
 
 An Access token is a token used by a client to **access a protected API**.
 
-#### ID Token
+### ID Token
 
 An ID token is a token used to **prove that a user has authenticated and to carry user identity information**.
 
-#### Refresh Token
+### Refresh Token
 
 A refresh token is a token used to **obtain new access tokens without re-authenticating the user**.
 
 _These names come directly from OAuth 2.0 and OpenID Connect, which AuthO implements_
+
+### 2.8.2 Access Token
+
+An Access token represents authorization, not identity.
+
+It tells an API: _"This request is allowed to access this resource with these permissions"_
+
+**Why access token exist**
+
+APIs should not care who is the user is, only check whether request is allowed to do.
+
+Access tokens exists to carry permissions and scope in verifiable way.
+
+This keeps APIs decoupled with authentication logic
+
+**What access token contains**
+
+An access token typically includes
+
+- Who the token is for (sub)
+- Who issued it(iss)
+- When it expires(exp)
+- What it can do (scopes or permissions)
+
+The API validates the token and enforces authorization based on its contents.
+
+> _Important boundary_
+>
+> Access tokens are not meant to be read by the frontend for user details
+>
+> There are meant to be:
+>
+> - sent to APIs
+> - Validate by APIs
+> - Enforced by APIs
+
+### 2.8.3 ID Token (OIDC)
+
+An ID Token represents authentication, not authorization.
+
+It tells the client application: _"This user has successfully logged in and here is their identity information."_
+
+**Why ID token exist**
+
+Frontend application need a trusted proof of login.
+
+They also need basic user information without calling APIs unnecessarily.
+
+ID tokens exist to fulfill this need securely and explicitly.
+
+**What ID tokens contain**
+
+An ID token typically includes:
+
+- A stable user identifier(sub)
+- The issuer(iss)
+- The client it was issued for (aud)
+- Authentication time
+- Optional profile information
+
+ID tokens are consumed by the client, not APIs
+
+### 2.8.4 Refresh Token
+
+A refresh token is a longer-lived credential used to obtain new access tokens.
+
+It is not sent to APIs
+
+**Why refresh token exist**
+
+Access tokens are short lived for security reasons.
+
+Re-authenticating the user every few minutes would harm user experience.
+
+Refresh token exist to:
+
+- Preserve session continuity
+- Avoid repeated logins
+- Keep access tokens short-lived
+
+_How refresh tokens are used_
+
+1. Access token expires
+2. Client send refresh token to authorization server
+3. Authorization server issues a new access token
+
+**APIs never see refresh tokens**
+
+### 2.8.5 Real-World Token Separation
+
+AuthO enforces strict separation:
+
+| Token Type    | Used By | Sent To     | Purpose            |
+| ------------- | ------- | ----------- | ------------------ |
+| Access Token  | Client  | API         | Authorization      |
+| ID Token      | Client  | Client Only | Authentication     |
+| Refresh Token | Client  | Auth server | Session continuity |
+
+## 2.9 Secure Token Storage
+
+## 2.9.1 Terminologies
+
+### Token Storage
+
+Token storage is the place where a client application **keeps authentication tokens between requests.**
+
+### Browser Storage
+
+Browser storage is a mechanism provided by the browser to persist data, such as cookies and web storage.
+
+### XSS (Cross-site scripting)
+
+XSS is an attack where an attacker injects malicious javascript code into a trusted website, causing browser to execute attacker-controlled code.
+
+### CSRF (Cross-site Request Forgery)
+
+CSRF is an attack where a browser is tricked into sending authenticated requests to a server **without user's intent.**
+
+### HttpOnly Cookie
+
+An HttpOnly Cookie is a cookie that **cannot be accessed by javascript**, even if XSS exists.
+
+### SameSite
+
+SameSite is a cookie attribute that controls **whether cookies are sent with cross-site requests**.
+
+## 2.9.2 _What Secure Token Storage Means_
+
+Secure token storage means choosing a storage mechanism that minimized the risk of token theft and misuse.
+
+- A token is effectively a Key.
+- Anyone who possesses it can act as a user until it expires
+
+The goal of secure storage is to reduce the probability that attackers can access the key.
+
+## 2.9.3 _Why Token Storage is a Security problem_
+
+The core problem
+
+Browser are powerful but hostile environment.
+
+They execute:
+
+- First-party Javascript
+- Third-party scripts
+- User-installed extensions
+
+If a token is stored where javascript can read it, **any successful XSS attack becomes an account takeover**.
+
+## 2.9.4 Storage Options and Risks
+
+### A. LocalStorage
+
+LocalStorage stores key-value data in the browser and allows **full Javascript read/write access**.
+
+Tokens stored here persist across page reloads.
+
+_Why LocalStorage is dangerous_
+
+If XSS occurs:
+
+- Malicious Javascript code can read the token
+- Token can be <abbr title='data exportation -- the data theft'>exfiltrated</abbr> to an attacker
+- Attacker can <abbr title='pretends to be'>impersonate</abbr> the user
+
+LocalStorage offer **Zero Protection** against XSS.
+
+### B. SessionStorage
+
+SessionStorage is similar to LocalStorage but is scoped to a browser tab.
+
+_*Why SessionStorage is still unsafer*_
+
+SessionStorage is also fully accessible to Javascript.
+
+XSS impact is the same as LocalStorage.
+
+The Only difference is lifetime, not security.
+
+### C. Cookies (Without Security Flags)
+
+[Cookies](#b-cookies) are automatically sent by the browser with HTTP requests to matching domain.
+
+_*Why plain cookies are unsafe*_
+
+without proper flags:
+
+- Javascript can read cookies
+- Cookies are sent in cross-site requests
+- Both XSS and CSRF risks exist
+
+Cookies are not secure by default
+
+### D. HttpOnly Cookies (Recommended)
+
+How HttpOnly Cookies works
+
+HttpOnly Cookies:
+
+- Are sent automatically with requests
+- Cannot read by Javascript
+- Are invisible to XSS payloads
+
+This removes the primary token theft vector.
+
+_*Why HttpOnly cookies improve security*_
+
+Even is XSS exists:
+
+- Token cannot be stolen via Javascript
+- Attackers cannot be easily exfiltrate it
+
+This significantly reduces blast radius.
+
+### E. SameSite Attribute(CSRF Mitigation)
+
+Why SameSite exists
+
+When cookies are automatically sent, CSRF becomes possible.
+
+Samesite controls **When cookies are includes in cross-site requests**.
+
+SameSite modes
+
+- **Strict** : Cookie sent only in same-site requests
+- **Lax** : Cookie sent in top-level navigation's
+- **None** : Cookie sent in all context(requires secure)
+
+SameSite reduces CSRF risk without breaking modern auth flow.
+
+### Real-World Secure Patterns
+
+AuthO's recommended browser pattern:
+
+- Store access tokens in memory
+- Store session identifiers or refresh tokens in HttpOnly cookies
+- Use Short-lived access tokens
+- Rely on automatic cookie sending
 
 ##check
 
@@ -1221,3 +1507,7 @@ _These names come directly from OAuth 2.0 and OpenID Connect, which AuthO implem
 ### A. Delegated access
 
 Delegated access is a security mechanism that allow an entity (the "delegate" or "proxy"), to perform an action or access a resource on behave of another (owner or delegator), without sharing owner primary login credentials
+
+### B. Cookies
+
+Cookies are small text files placed on a user's device by a website to remember information, such as login status, shopping cart items, or site preferences

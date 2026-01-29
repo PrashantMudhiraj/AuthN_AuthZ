@@ -74,7 +74,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
 ## PHASE 2 — JWT (Token-Based Security)
 
-    ### Topic 2 — JWT Fundamentals
+    ### Topic 2.1 — JWT Fundamentals
 
     * Token
     * Claim
@@ -84,7 +84,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 3 — Secure Token Storage
+    ### Topic 2.2 — Secure Token Storage
 
     * XSS
     * CSRF
@@ -96,7 +96,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
 ## PHASE 3 — OAuth 2.0 (Authorization Framework)
 
-    ### Topic 4 — OAuth 2.0 Core Terminologies
+    ### Topic 3.1 — OAuth 2.0 Core Terminologies
 
     * Resource Owner
     * Client
@@ -106,7 +106,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 5 — OAuth 2.0 Grant Types
+    ### Topic 3.2 — OAuth 2.0 Grant Types
 
     * Authorization Code Grant
     * Client Credentials Grant
@@ -115,7 +115,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 6 — OAuth 2.0 Authorization Code Flow
+    ### Topic 3.3 — OAuth 2.0 Authorization Code Flow
 
     * Redirect-based flow
     * Code exchange
@@ -126,7 +126,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
 ## PHASE 4 — OpenID Connect (OIDC)
 
-    ### Topic 7 — OpenID Connect Basics
+    ### Topic 4.1 — OpenID Connect Basics
 
     * ID Token
     * Access Token
@@ -135,7 +135,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 8 — OIDC Flow & Token Validation
+    ### Topic 4.2 — OIDC Flow & Token Validation
 
     * iss, aud, sub, exp, nonce
     * ID token validation rules
@@ -145,7 +145,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
 ## PHASE 5 — Express.js Real-World Implementation
 
-    ### Topic 9 — Express Authentication Architecture
+    ### Topic 5.1 — Express Authentication Architecture
 
     * Middleware chaining
     * Auth context propagation
@@ -153,7 +153,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 10 — Implementing JWT Auth in Express
+    ### Topic 5.2 — Implementing JWT Auth in Express
 
     * Login endpoint
     * Token issuance
@@ -162,7 +162,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 11 — OAuth / OIDC Login in Express
+    ### Topic 5.3 — OAuth / OIDC Login in Express
 
     * passport
     * openid-client
@@ -173,7 +173,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
 ## PHASE 6 — Security Hardening (Senior Level)
 
-    ### Topic 12 — Common Auth Vulnerabilities
+    ### Topic 6.1 — Common Auth Vulnerabilities
 
     * JWT misconfiguration
     * Algorithm confusion attacks
@@ -182,7 +182,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 13 — Authorization Models
+    ### Topic 6.2 — Authorization Models
 
     * RBAC
     * ABAC
@@ -191,7 +191,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 14 — Production Best Practices
+    ### Topic 6.3 — Production Best Practices
 
     * Token rotation
     * Logout & revocation
@@ -202,7 +202,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
 ## PHASE 7 — Platform & Network Security
 
-    ### Topic 15 — TLS / HTTPS Basics
+    ### Topic 7.1 — TLS / HTTPS Basics
 
     * Certificates
     * Public key usage in TLS
@@ -210,7 +210,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 16 — CSRF, CORS, Rate Limiting
+    ### Topic 7.2 — CSRF, CORS, Rate Limiting
 
     * CSRF attacks & mitigations
     * CORS misconceptions
@@ -218,7 +218,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
-    ### Topic 17 — Secrets & Key Management
+    ### Topic 7.3 — Secrets & Key Management
 
     * Environment variables
     * Key rotation
