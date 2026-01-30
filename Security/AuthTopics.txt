@@ -112,6 +112,7 @@ This document is **final and frozen**. It is designed for **deep understanding +
     * Client Credentials Grant
     * Refresh Token Grant
     * Why Implicit Grant is deprecated
+    
 
     ---
 

@@ -411,6 +411,8 @@ This is why **Signature = Integrity + Authenticity**.
     - They are signed claims
     - OAuth Token Flow (simplified)
 
+### Sequence Diagram
+
         ```mermaid
             sequenceDiagram
                 participant AS as Authorization Server
@@ -801,6 +803,8 @@ if (principal.role === "Admin") {
 - 403 Forbidden means the system knows who you are but refuses the action
 
 #### 1.12 Code : [AuthMiddleware.js](./code/phase-1/AuthMiddleware.js)
+
+### Sequence Diagram
 
 ```mermaid
 graph TD
@@ -1209,6 +1213,8 @@ In practice, system rely on strategies such as:
 
 These mechanisms introduce controlled state, which we will cover in later phase.
 
+### Sequence Diagram
+
 ```mermaid
 
 sequenceDiagram
@@ -1500,7 +1506,7 @@ AuthO's recommended browser pattern:
 
 # PHASE 3 — OAuth 2.0 (Authorization Framework)
 
-## 3.1 Terminologies
+## 3.1 OAuth 2.0 Core Terminologies
 
 ### Resource Owner
 
@@ -1540,11 +1546,11 @@ The Resource Server is **the API or backend service that hosts the protected dat
 
 It does not authenticate users directly and does not issue tokens.
 
-instead, it receives tokens from clients and validates them to decide whether access should be granted
+Instead, it receives tokens from clients and validates them to decide whether access should be granted
 
 The Resource Server trusts the Authorization Server to have performed authentication correctly.
 
-## Scope
+## 3.1.1 Scope
 
 A Scope is **a way to limit what a client is allowed to do.**
 
@@ -1554,11 +1560,223 @@ For example, a token may allow reading user data not modifying it.
 
 Scopes are critical because they enforce **the principle of least privilege**, when means giving only the minimum access required.
 
-## 3.2 What OAuth 2.O Is (Conceptually)
+## 3.1.2 What OAuth 2.O Is (Conceptually)
+
+OAuth 2.0 is **not an authenticated protocol**.
+
+OAuth 2.0 is **a delegated Authorization framework**.
+
+It core purpose is to allow a Resource owner to **grant limited access to their data** to a Client **without sharing credentials** such as passwords
+
+## 3.1.3 Why OAuth 2.0 Exists
+
+The Problem OAuth solves
+
+Before OAuth, applications often asked users for their **username and password** for third party services.
+
+This creates server risk because:
+
+- Passwords were shared with untrusted apps
+- Users could not limit access
+- Password changes broke integration
+- Breaches exposed full accounts
+
+OAuth 2.0 exists to **eliminate credential sharing entirely**.
+
+Instead of passwords, OAuth uses **time-limited tokens with limited permissions**.
+
+## 3.1.4 Technical Perspective - How These Roles Work Together
+
+In a typical OAuth interaction:
+
+- The **Resource Owner** owns the data.
+- The **Client** request access
+- The **Authorization Server** verifies identity and consent
+- The **Resource Server** enforces access using tokens
+- **Scopes** defines the boundaries of that access
+
+Each role has a **single responsibility**, and none of them overlap by accident
+
+This strict separation is what makes OAuth secure and scalable
+
+## 3.1.5 Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant RO as Resource Owner (User)
+    participant Client as Client Application
+    participant AS as Authorization Server
+    participant RS as Resource Server (API)
+
+    RO->>Client: Uses application
+    Client->>RO: Requests permission to access data
+
+    RO->>AS: Authenticates and gives consent
+    AS->>AS: Validate identity and consent
+
+    AS-->>Client: Issue Access Token with scopes
+
+    Client->>RS: API request with Access Token
+    RS->>RS: Validate token and scopes
+    RS-->>Client: Protected resource response
+```
+
+## 3.2 OAuth Grant Types
+
+## 3.2.1 Terminologies
+
+#### Grant Type
+
+A Grant type defines **how a client application obtain a access token from authorization server**.
+
+It describes:
+
+- Who is involved
+- How trust is established
+- What credentials are exchanged
+- What security assumptions are made
+
+Grant types exist because **different clients have different risk levels and capabilities**
+
+## 3.2.2 Concept - What OAuth 2.0 Grant Types Are
+
+OAuth 2.0 Grant types are _standardized authorization flows_.
+
+Each grant type defines **specific sequence of steps that allows a client to obtain a access token without learning user's password**
+
+OAuth does not allow clients to invent their own flow.
+
+Only well-defined grant types are allowed. because authorization logic must be **predictable and auditable**
+
+## 3.2.3 The Main OAuth 2.0 Grant Types
+
+**_Authorization Code Grant (Most Important)_**
+
+_What is it_
+
+The Authorization Code Grant is a flow where:
+
+- The user authenticates with the Authorization server
+- The client receives a **temporary authorization code**
+- The client exchanges that code for tokens using a secure backend channel
+
+The access token is never exposed directly to the browser
+
+_Why it exists_
+
+This grant exist to protect tokens from:
+
+- Browser javascript
+- URL leaks
+- interception attacks
+
+It is designed for **confidential clients**, such as backend servers.
+
+AuthO strongly recommends this grant type for modern web applications
+
+_High-level behavior_
+
+- User logs in at Authorization server
+- Client receives a short-lived code
+- Backend exchanges code for token securely
+
+**_Client Credentials Grant_**
+
+_What is it_
+
+The Client Credentials is used when:
+
+- There is no user involved
+- The Client is acting on its own behalf
+
+In this grant, the client authenticates directly with the Authorization server using its own credentials
+
+_Why it exists_
+
+Machine-to-machine communication still needs authorization.
+
+Examples include:
+
+- Internal microservices
+- Background jobs
+- Scheduled workers
+
+This grant exists to issue tokens without a Resource Owner.
+
+> _Important limitation_
+>
+> This grant **must never be used for user login**, because there is no user identity involved.
+
+**_Refresh Token Grant_**
+
+_What is it_
+
+The Refresh Token Grant allows a client to obtain a **new access token** using a refresh token.
+
+The user is not involved in this flow.
+
+_Why it exists_
+
+Access tokens are intentionally short-lived for security reasons.
+
+Refresh tokens exits to:
+
+- Avoid frequent logins
+- Maintain session continuity
+- Reduce exposure of long-lived credentials
+
+This grant is tightly controlled and carefully restricted.
+
+**_Implicit Grant (deprecated)_**
+
+_What it was_
+
+The Implicit Grant was designed for browser-based applications that could not keeps secrets.
+
+It returned access tokens directly in the browser
+
+_Why it was deprecated_
+
+This grant exposed token to:
+
+- Browser history
+- Javascript access
+- URL Leakage
+
+Modern security guidance, including AuthO's, **Strongly discourage its use**
+
+It has been replaced by **Authorization code grant with PKCE (Proof key for Code Exchange)**
 
 ##check
 
 ---
+
+## Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AS as Authorization Server
+    participant RO as Resource Owner (User)
+
+    rect rgb(220,235,255)
+        RO->>AS: Authenticate and give consent
+        AS-->>Client: Authorization Code
+        Client->>AS: Exchange code for tokens
+        AS-->>Client: Access Token (and Refresh Token)
+    end
+
+    rect rgb(220,255,220)
+        Client->>AS: Client ID + Client Secret
+        AS-->>Client: Access Token (no user)
+    end
+
+    rect rgb(255,235,205)
+        Client->>AS: Refresh Token
+        AS-->>Client: New Access Token
+    end
+
+```
 
 # Glossary
 
