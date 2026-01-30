@@ -72,7 +72,7 @@
 
 ### [Phase 5 – Express Implementation](#phase-5---express-implementation-indexed)
 
-### [Definitions](#definitions)
+### [ Glossary ](#glossary)
 
 - [A. Delegated Access](#a-delegated-access)
 - [B. Cookies](#b-cookies)
@@ -1498,11 +1498,69 @@ AuthO's recommended browser pattern:
 - Use Short-lived access tokens
 - Rely on automatic cookie sending
 
+# PHASE 3 — OAuth 2.0 (Authorization Framework)
+
+## 3.1 Terminologies
+
+### Resource Owner
+
+The Resource Owner is **the entity that owns the data being accessed**.
+
+In most real-world applications, the Resource Owner is the **end user**, meaning a human being who owns personal data such as profile information, orders or messages.
+
+OAuth 2.0 is designed primarily to protect Resource Owner's data, not the client application.
+
+The Resource Owner is the only party that has the authority to **grant permission** for access to that data.
+
+### Client
+
+The Client is the application that **wants to access the Resource Owner's data**.
+
+This Could be a web application, a mobile app, a backend application or even a command line tool.
+
+The Client does not own the data and therefore cannot access by default.
+
+Instead, the Client must request permission and prove that permission has been granted.
+
+In OAuth, the client is identified by a **client ID**, and sometimes authenticated using a **client secret**.
+
+### Authorization Server
+
+The Authorization server is **the system responsible for authenticating Resource owner and issuing tokens**
+
+It acts as a trusted authority that both the client and the Resource server rely on.
+
+The Authorization Server verifies who the user is, ask for the consent when required, and issue tokens that represents that consent
+
+In modern systems, platforms like AuthO commonly act as the Authorization Server.
+
+### Resource Server
+
+The Resource Server is **the API or backend service that hosts the protected data.**
+
+It does not authenticate users directly and does not issue tokens.
+
+instead, it receives tokens from clients and validates them to decide whether access should be granted
+
+The Resource Server trusts the Authorization Server to have performed authentication correctly.
+
+## Scope
+
+A Scope is **a way to limit what a client is allowed to do.**
+
+Instead of granting full access, scopes allow access to be broken down into smaller, controlled permissions.
+
+For example, a token may allow reading user data not modifying it.
+
+Scopes are critical because they enforce **the principle of least privilege**, when means giving only the minimum access required.
+
+## 3.2 What OAuth 2.O Is (Conceptually)
+
 ##check
 
 ---
 
-# Definitions
+# Glossary
 
 ### A. Delegated access
 

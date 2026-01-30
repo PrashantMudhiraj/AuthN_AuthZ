@@ -226,6 +226,10 @@ This document is **final and frozen**. It is designed for **deep understanding +
 
     ---
 
+# PHASE 8 - Explore common Implementations
+
+    ### Topic 8.1 Keycloak
+    
 ## ✅ Learning Rules (Permanent)
 
 * Every topic starts with **Terminologies**
