@@ -1754,6 +1754,21 @@ It has been replaced by **Authorization code grant with PKCE (Proof key for Code
 ## Sequence Diagram
 
 ```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+  themeVariables:
+    fontFamily: "Verdana"
+    fontSize: "16px"
+    actorFontSize: "18px"
+    messageFontSize: "14px"
+    noteFontSize: "14px"
+    actorFontWeight: "bold"
+    actorTextColor: "#000"
+    signalTextColor: "#000"
+    labelTextColor: "#000"
+---
 sequenceDiagram
     participant Client
     participant AS as Authorization Server
@@ -1775,6 +1790,7 @@ sequenceDiagram
         Client->>AS: Refresh Token
         AS-->>Client: New Access Token
     end
+
 
 ```
 
