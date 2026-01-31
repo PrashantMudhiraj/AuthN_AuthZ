@@ -247,7 +247,7 @@ const key = crypto.randomBytes(32);
 const iv = crypto.randomBytes(16);
 
 function encrypt(text) {
-    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+    const cipher = crypto.createCheriv("aes-256-cbc", key, iv);
     return cipher.update(text, "utf-8", "hex") + cipher.final("hex");
 }
 
@@ -413,7 +413,7 @@ This is why **Signature = Integrity + Authenticity**.
 
 ### Sequence Diagram
 
-        ```mermaid
+```mermaid
             sequenceDiagram
                 participant AS as Authorization Server
                 participant Client
@@ -428,7 +428,7 @@ This is why **Signature = Integrity + Authenticity**.
                 Note over RS: 3. Verify Signature (Public Key)
                 Note over RS: 4. Check Identity/Permissions
                 RS-->>Client: Success (Resource Access)
-        ```
+```
 
 - **Why HTTPS is Possible:** Uses a TLS Handshake where the server sends a Public Key, the client encrypts a symmetric session key with it, and the server decrypts it with the Private Key.
     - The HTTP problem
@@ -480,20 +480,54 @@ This is why **Signature = Integrity + Authenticity**.
 
 ### Visual Representation
 
-```text
-SENDER (Alice)                      RECIPIENT (Bob)
-[Document]                      [Document] + [Signature]
-    |                              |             |
-    v                              |             v
-(Hash Function)                    |      (Alice's Public Key)
-    |                              |             |
-    v                              v             v
-[Hash A]                    (Hash Function)  [Hash B]
-    |                              |             |
-(Alice's Private Key)              v             v
-    |                           [Hash C] <---> [Hash B]
-    v                                   Compare!
-[Signature] --------------------------------^
+```mermaid
+graph TD
+    %% Global Styles for Dark Theme
+    classDef default fill:#1e1e1e,stroke:#888,color:#fff;
+    classDef data fill:#006064,stroke:#4dd0e1,color:#fff;
+    classDef key fill:#4a1412,stroke:#ff5252,color:#ff5252,stroke-width:2px;
+    classDef process fill:#333,stroke:#ffd54f,color:#ffd54f;
+    classDef success fill:#1b5e20,stroke:#69f0ae,color:#69f0ae;
+    classDef failure fill:#b71c1c,stroke:#e57373,color:#e57373;
+    classDef border fill:none,stroke:#444,stroke-dasharray: 5 5;
+
+    %% --- SENDER / REQUESTER PROCESS ---
+    subgraph REQUESTER ["📤 STEP 1: REQUESTER (CREATION)"]
+        direction TB
+        Payload[Raw Data / Claims]:::data --> Hash1(Hash Function):::process
+        Hash1 --> Digest1[Data Digest]:::process
+
+        Secret1[[Private Key / Secret]]:::key --> Sign[Signing Operation]:::process
+        Digest1 --> Sign
+
+        Sign --> Signature[Digital Signature]:::data
+    end
+
+    %% --- TRANSMISSION ---
+    Signature -- "Attached as Part of Token" --> Incoming
+    Payload -- "Sent as Plaintext" --> Incoming
+
+    %% --- RECIPIENT / SERVER PROCESS ---
+    subgraph SERVER ["🛡️ STEP 2: SERVER (VALIDATION)"]
+        direction TB
+        Incoming[Incoming Token]:::data --> Split{Split Data}
+
+        subgraph Hashing ["Hashing Logic"]
+            Split -- "Extract Data" --> Recalculate(Hash Function):::process
+            Key2[[Public Key / Secret]]:::key --> Recalculate
+            Recalculate --> ComputedSig[Computed Signature]:::process
+        end
+
+        Split -- "Extract Signature" --> Compare
+        ComputedSig --> Compare{Match?}:::process
+
+        Compare -- YES --> OK[✅ AUTHORIZED]:::success
+        Compare -- NO --> ERR[❌ DENIED]:::failure
+    end
+
+    %% Aesthetics
+    style REQUESTER fill:#1a1a2e,stroke:#5c6bc0
+    style SERVER fill:#16213e,stroke:#00e676
 ```
 
 - You generate a hash from the received document.
@@ -611,56 +645,59 @@ Systematically trying many passwords until one matches.
 
 ### 8. Password Hashing & verification Flow
 
-```text
-USER
-----
-Enters Password
-      |
-      v
-[ Plain Password ]
-      |
-      | + Unique SALT (stored in DB)
-      | + PEPPER (server secret, env variable)
-      v
-[ Password + Salt + Pepper ]
-      |
-      | Password Hashing Algorithm
-      | (bcrypt / argon2 / scrypt)
-      | - slow
-      | - adaptive
-      | - memory-hard
-      v
-[ Password Hash ]
-      |
-      | store / compare
-      v
-[ DATABASE ]
-  - stores only:
-    - password hash
-    - salt
-  - does NOT store:
-    - plaintext password
-    - pepper
-      |
-      | Login Attempt
-      | → recompute hash using stored salt + server pepper
-      | → constant-time comparison
-      v
-[ MATCH ? ]
-   | YES                     | NO
-   v                         v
-[ Auth Success ]     [ Auth Failure ]
+```mermaid
+graph TD
+    %% Global Styles for Dark Theme
+    classDef default fill:#1e1e1e,stroke:#888,color:#fff,stroke-width:2px;
+    classDef start fill:#1a237e,stroke:#5c6bc0,color:#fff;
+    classDef process fill:#333,stroke:#ffd54f,color:#ffd54f;
+    classDef storage fill:#311b92,stroke:#ba68c8,color:#fff;
+    classDef success fill:#1b5e20,stroke:#81c784,color:#81c784;
+    classDef failure fill:#b71c1c,stroke:#e57373,color:#e57373;
+    classDef highlight fill:#006064,stroke:#4dd0e1,color:#fff;
+    classDef cert fill:#00241b,stroke:#00e676,color:#00e676,stroke-dasharray: 5 5;
 
+    %% 1. The Main Flow
+    User([User Enters Password]):::start --> Plain[Plain Password]:::highlight
 
-SECURITY GUARANTEES
-------------------
-- Passwords are never decrypted or recovered
-- Hashing is one-way (no reverse operation)
-- Same password + different salt → different hash per user
-- Rainbow tables are ineffective
-- Database breach ≠ password disclosure
-- Slow hashing makes brute-force attacks impractical
+    subgraph Secrets ["External Components"]
+        Salt[Unique SALT from DB]:::process
+        Pepper[Server PEPPER - Env Var]:::process
+    end
 
+    Plain --> Combine{Combine}
+    Salt --> Combine
+    Pepper --> Combine
+
+    Combine --> Data[Password + Salt + Pepper]:::highlight
+    Data --> HashAlgo[Hashing Algorithm<br/>bcrypt / argon2 / scrypt]:::process
+
+    HashAlgo --> PHash[Password Hash]:::highlight
+    PHash --> DB[(DATABASE)]:::storage
+
+    DB --> Login[Login Attempt:<br/>Recompute & Compare]:::process
+
+    Login --> Match{MATCH?}:::process
+    Match -- YES --> Success[Auth Success]:::success
+    Match -- NO --> Failure[Auth Failure]:::failure
+
+    %% 2. ADDED HERE: The Security Guarantees Box (Option 2)
+    %% We connect it to the DB with a dotted line so it sits at the bottom
+    DB -.-> Guarantees
+
+    subgraph Guarantees ["🛡️ SECURITY GUARANTEES"]
+        direction TB
+        G1[Passwords are never decrypted or recovered]:::cert
+        G2[Hashing is one-way - no reverse operation]:::cert
+        G3[Same password + different salt = unique hash]:::cert
+        G4[Rainbow tables are ineffective]:::cert
+        G5[Database breach != password disclosure]:::cert
+        G6[Slow hashing makes brute-force impractical]:::cert
+    end
+
+    %% This invisible link keeps the Guarantees box centered at the bottom
+    Success ~~~ Guarantees
+    Failure ~~~ Guarantees
 ```
 
 **Code**: [passwordHashing.js](./code/phase-0/passwordHashing.js)
@@ -804,7 +841,7 @@ if (principal.role === "Admin") {
 
 #### 1.12 Code : [AuthMiddleware.js](./code/phase-1/AuthMiddleware.js)
 
-### Sequence Diagram
+### 1.13 Sequence Diagram
 
 ```mermaid
 graph TD
@@ -1213,7 +1250,7 @@ In practice, system rely on strategies such as:
 
 These mechanisms introduce controlled state, which we will cover in later phase.
 
-### Sequence Diagram
+### 2.7.5 Sequence Diagram
 
 ```mermaid
 
@@ -1751,7 +1788,7 @@ It has been replaced by **Authorization code grant with PKCE (Proof key for Code
 
 ---
 
-## Sequence Diagram
+## 3.2.4 Sequence Diagram
 
 ```mermaid
 ---
@@ -1773,6 +1810,7 @@ sequenceDiagram
     participant Client
     participant AS as Authorization Server
     participant RO as Resource Owner (User)
+    participant RS as Resource Server
 
     rect rgb(220,235,255)
         RO->>AS: Authenticate and give consent
@@ -1791,7 +1829,9 @@ sequenceDiagram
         AS-->>Client: New Access Token
     end
 
-
+    rect rgb(148, 213, 230)
+        Client->>RS : Access data with Access token
+    end
 ```
 
 # Glossary
