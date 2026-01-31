@@ -2392,6 +2392,72 @@ sequenceDiagram
 
 ```
 
+## 3.7 Difference between Authorization code with and without PKCE
+
+### Authorization Code Flow (Without PKCE)
+
+This flow is designed for **confidential clients**, such as backend server applications, that can safely store a client secret.
+
+The client redirects the user to the Authorization Server for authentication and consent.  
+After successful login, the Authorization Server issues an **authorization code**.
+
+During the **token exchange step**, the client sends:
+
+- The authorization code
+- Its **client credentials** (client ID and client secret)
+
+The client secret is used to prove the **identity of the client application** to the Authorization Server.
+
+This flow assumes that the client secret is **never exposed** and cannot be stolen.
+
+---
+
+### Authorization Code Flow with PKCE
+
+This flow is designed for **public clients**, such as browser-based SPAs and mobile applications, which **cannot securely store a client secret**.
+
+Before redirecting the user, the client generates a **code verifier** and derives a **code challenge** from it.
+
+During the **authorization request**, the client sends:
+
+- Client ID
+- **Code challenge**
+
+After the user authenticates, the Authorization Server issues an **authorization code**.
+
+During the **token exchange step**, the client sends:
+
+- The authorization code
+- **Code verifier**
+
+The Authorization Server validates that the code verifier matches the previously stored code challenge, proving that the same client instance completed the flow.
+
+---
+
+### Key Difference (Mental Model)
+
+- **Client secret** proves _who the client is_
+- **PKCE** proves _this is the same client instance_
+
+---
+
+### Side-by-Side Comparison
+
+| Aspect                        | Authorization Code Flow | Authorization Code Flow + PKCE |
+| ----------------------------- | ----------------------- | ------------------------------ |
+| Client type                   | Confidential            | Public                         |
+| Client secret used            | Yes                     | No                             |
+| Authorization request         | client_id               | client_id + code_challenge     |
+| Token exchange                | code + client_secret    | code + code_verifier           |
+| Protection against code theft | Client secret           | PKCE proof                     |
+| Safe for browser-based apps   | No                      | Yes                            |
+
+---
+
+### Important Note
+
+Modern OAuth guidance recommends **using PKCE in all cases**, even for confidential clients, because it adds an additional security layer with no practical downside.
+
 # Glossary
 
 ## A. Delegated Access
