@@ -1,89 +1,87 @@
-# Authentication and Authorization
+﻿# Authentication and Authorization
 
-## Table of Contents
+# Table of Contents
 
-### [Phase 0 – Cryptography Foundations](#phase-0---cryptography-foundations)
+## [Phase 0 – Cryptography Foundations](#phase-0-cryptography-foundations)
 
-- [0.1 Terminologies](#01-terminologies)
-- [0.2 Symmetric Cryptography](#02-symmetric-cryptography)
-    - [AES (Advanced Encryption Standard)](#aes-advanced-encryption-standard)
-    - [Authentication Tag (AuthTag) & GCM](#authentication-tag-authtag--gcm)
-    - [Summary Table (getAuthTag vs setAuthTag)](#summary-table)
-- [0.3 Asymmetric Cryptography](#03-asymmetric-cryptography)
-- [0.4 Digital Signatures](#04-digital-signatures)
-- [0.5 Hashing & Password Security](#05-hashing--password-security)
+- **0.1 – Cryptography Terminology**
+    - [Core Definitions (Plaintext, Ciphertext, Key)](#01--cryptography-terminology)
+    - [Encryption vs. Decryption](#encryption)
+    - [Hashing vs. Salting](#hash)
+    - [Digital Signatures (Integrity & Authenticity)](#signature)
+    - [Node.js Primitive Examples (Hashing, AES Encryption)](#nodejs-primitive-examples)
+- **0.2 – Symmetric Cryptography**
+    - [Shared Secrets & Algorithms (AES)](#02--symmetric-cryptography)
+    - [Authentication Tags & GCM Mode](#authentication-tag-authtag--gcm)
+    - [The Sender/Receiver Verification Logic](#complete-picture)
+- **0.3 – Asymmetric Cryptography**
+    - [Public and Private Key Pairs](#03--asymmetric-cryptography)
+    - [Key Distribution & TLS (HTTPS) Usage](#why-its-used)
+    - [JWT RS256 vs. OAuth Trusts](#questions--real-world-usage)
+- **0.4 – Digital Signatures**
+    - [The Signing and Verification Flow](#high-level-flow)
+    - [Visual Logic Representation](#visual-representation)
+- **0.5 – Hashing & Password Security**
+    - [Verification Flows vs. Password Recovery](#hashing--password-terminologies)
+    - [Salting vs. Peppering](#how-salt-protects-you)
+    - [Slow Algorithms (bcrypt, argon2, scrypt)](#what-password-hashing-algorithms-do-differently)
 
-### [Phase 1 – Authentication & Authorization Foundations](#phase-1---authentication--authorization-foundations)
+## [Phase 1 – Authentication and Authorization Foundations](#phase-1-authentication--authorization-foundations)
 
-- [1.1 Authentication (AuthN)](#11-authentication-authn)
-- [1.2 Authorization (AuthZ)](#12-authorization-authz)
-- [1.3 Identity (Who)](#13-identity-who)
-- [1.4 Principal (What)](#14-principal-what)
-- [1.5 Policy](#15-policy)
-- [1.6 Permission](#16-permission)
-- [1.7 Analogy](#17-analogy)
-- [1.8 Flow](#18-flow)
-- [1.9 Express middleware responsibility code example](#19-express-middleware-responsibility-code-example)
-- [1.10 Request Lifecycle](#110-request-lifecycle)
-- [1.11 HTTP Semantics](#111-http-semantics)
-- [1.12 Code Example](#112-code--authmiddlewarejs)
+- **1.1 – Terminologies**
+    - [AuthN vs. AuthZ](#authentication-authn)
+    - [Identity vs. Principal vs. Policy](#identity-who)
+- **1.2 – Authorization in Express.js**
+    - [The "Actor" Object Structure](#12-authorization-in-expressjs)
+- **1.3 – Request Lifecycle**
+    - [HTTP Semantics (401 vs. 403)](#13-request-lifecycle)
 
-### [Phase 2 – JWT (Token-Based Security)](#phase-2---jwt-token-based-security)
+## [Phase 2 – JWT (Token-Based Security)](#phase-2-jwt-token-based-security)
 
-- [2.1 Terminologies](#21-terminologies)
-- [2.2 What is a JSON Web Token?](#22-what-is-a-json-web-token)
-- [2.3 JWT Structure](#23-jwt-structure)
-    - [2.3.1 JWT Header](#231-jwt-header)
-    - [2.3.2 JWT Payload (Claims)](#232-jwt-payload-claims)
-    - [2.3.3 JWT Signature](#233-jwt-signature)
-- [2.4 How JWT Verification Works](#24-how-jwt-verification-works)
-- [2.5 What JWT Is and Is Not Responsible For](#25-what-jwt-is-an-is-not-responsible-for)
-- [2.6 HS256 vs RS256](#26-hs256-vs-rs256)
-    - [2.6.1 Terminologies](#261-terminologies)
-    - [2.6.2 What are HS256 and RS256?](#262-what-are-hs256-and-rs256)
-    - [2.6.3 Internal Working](#263-internal-working)
-    - [2.6.4 Why Auth0 strongly Recommends RS256](#264-why-autho-strongly-recommends-rs256)
-- [2.7 Token Lifecycle](#27-token-lifecycle)
-    - [2.7.1 Token Issuance](#271-token-issuance)
-    - [2.7.2 Token Usage](#272-token-usage)
-    - [2.7.3 Token Expiration](#273-token-expiration)
-    - [2.7.4 Token Invalidation](#274-token-invalidation)
-- [2.8 Token Types](#28-token-types)
-    - [2.8.1 Terminologies](#281-terminologies)
-    - [2.8.2 Access Token](#282-access-token)
-    - [2.8.3 ID Token (OIDC)](#283-id-token-oidc)
-    - [2.8.4 Refresh Token](#284-refresh-token)
-    - [2.8.5 Real-World Token Separation](#285-real-world-token-separation)
-- [2.9 Secure Token Storage](#29-secure-token-storage)
-    - [2.9.1 Terminologies](#291-terminologies)
-    - [2.9.2 What Secure Token Storage Means](#292-what-secure-token-storage-means)
-    - [2.9.3 Why Token Storage is a Security problem](#293-why-token-storage-is-a-security-problem)
-    - [2.9.4 Storage Options and Risks](#294-storage-options-and-risks)
-        - [A. LocalStorage](#a-localstorage)
-        - [B. SessionStorage](#b-sessionstorage)
-        - [C. Cookies (Without Security Flags)](#c-cookies-without-security-flags)
-        - [D. HttpOnly Cookies (Recommended)](#d-httponly-cookies-recommended)
-        - [E. SameSite Attribute (CSRF Mitigation)](#e-samesite-attributecsrf-mitigation)
-    - [Real-World Secure Patterns](#real-world-secure-patterns)
+- **2.1 – JWT Terminology**
+    - [Claims (sub, iss, aud, exp)](#21-jwt-terminology)
+- **2.2 – Overview & Self-Containment**
+    - [The Self-Contained Design](#22-what-is-a-json-web-token)
+- **2.3 – JWT Structure**
+    - [Header, Payload (Claims Types), and Signature](#23-jwt-structure)
+- **2.4 – Verification Flow**
+    - [Step-by-step Validation](#24-jwt-verification-flow)
+- **2.6 – HS256 vs. RS256**
+    - [Symmetric (Shared) vs. Asymmetric (Key Pair) Signing](#26-jwt---hs256-vs-rs256)
+- **2.9 – Token Lifecycle**
+    - [Issuance, Usage, Expiration, and Invalidation](#29-jwt---token-lifecycle)
+- **2.10 – Token Types**
+    - [Access Tokens vs. ID Tokens vs. Refresh Tokens](#210-jwt---token-types)
+- **2.11 – Secure Token Storage**
+    - [XSS & CSRF Risks](#211-jwt---secure-token-storage)
+    - [LocalStorage vs. HttpOnly Cookies](#storage-options-and-risks)
 
-### [Phase 3 – OAuth 2.0](#phase-3---oauth-20-indexed)
+## [Phase 3 – OAuth 2.0 (Authorization Framework)](#phase-3-oauth-20-authorization-framework)
 
-### [Phase 4 – OpenID Connect](#phase-4---openid-connect-indexed)
+- **3.1 – Core Terminology**
+    - [Roles: Resource Owner, Client, Auth Server, Resource Server](#31-oauth-20--core-terminology)
+    - [Scopes & Least Privilege](#scope)
+- **3.2 – Grant Types**
+    - [Authorization Code Grant (The Gold Standard)](#the-main-oauth-20-grant-types)
+    - [Client Credentials & Refresh Token Grants](#client-credentials-grant)
+    - [Implicit Grant (Deprecated)](#implicit-grant-deprecated)
+- **3.3 – Authorization Code Flow**
+    - [Redirect-Based Security](#redirect-based-authorization)
+    - [Back-Channel Communication](#authorization-code-exchange)
+    - [Token Trust Boundaries](#token-trust-boundaries-critical-concept)
+- **3.4 – Attack Scenarios**
+    - [Interception, Leakage, and Replay Attacks](#34-oauth-20--attack-scenarios)
 
-### [Phase 5 – Express Implementation](#phase-5---express-implementation-indexed)
+## [Glossary](#glossary)
 
-### [ Glossary ](#glossary)
-
-- [A. Delegated Access](#a-delegated-access)
-- [B. Cookies](#b-cookies)
+- [Delegated Access](#a-delegated-access)
+- [Cookies & Security Flags](#b-cookies)
 
 ---
 
-**Note on Navigation:** You can paste this index at the top of your file. It uses relative fragment identifiers to allow quick jumping to any section within the document.
+# Phase 0 Cryptography Foundations
 
-# Phase 0 - Cryptography Foundations
-
-## 0.1 Terminologies
+## 0.1 – Cryptography Terminology
 
 ### Cryptography
 
@@ -124,7 +122,7 @@
     - Small change -> Complete different output.
 - **Note:** Hashing is not encryption.
 
-### Salt
+### Salt (Cryptography Terminology)
 
 - Random data added to input before hashing.
 - **Why it exists:** Prevents precomputed attacks (rainbow tables).
@@ -152,13 +150,13 @@
 
 ---
 
-### Core Problems Solved (Cryptography)
+### Core Problems Solved
 
 - **Keep data secret:** Solved by encryption.
 - **Store secrets safely:** Solved by Hashing.
 - **Prove trust:** Solved by Signatures.
 
-### Why these are used?
+### Why These Are Used?
 
 - **Why encryption?** Protect data in transit (HTTPS) and data at rest (DB, backups).
 - **Why hashing?** Password storage and verifying integrity.
@@ -268,7 +266,7 @@ console.log(decrypt(secret));
 
 ---
 
-## 0.2 Symmetric Cryptography
+## 0.2 – Symmetric Cryptography
 
 - A Cryptography method where the **same key** is used for both Encryption and Decryption.
 - **Symmetric Key / Shared secret:** Known to both sender and receiver. whoever has this key can encrypt and decrypt data. Both parties must already trust each other
@@ -329,7 +327,7 @@ console.log(decrypt(secret));
 
 ---
 
-### Complete picture
+### Complete Picture
 
 1. `getAuthTag` (The Creation — **Sender Side**)
     - This happens at the end of the **Encryption** process.
@@ -368,7 +366,7 @@ This is why **Signature = Integrity + Authenticity**.
 
 ---
 
-## 0.3 Asymmetric Cryptography
+## 0.3 – Asymmetric Cryptography
 
 - **Key Pair:** Mathematically linked; one cannot exist without the other.
 - System using two different keys: **Public Key** and **Private Key**.
@@ -376,7 +374,7 @@ This is why **Signature = Integrity + Authenticity**.
     - **Private Key:** Kept secret; used to decrypt data or create signatures.
 - They are generated together and cannot exist independently
 
-### Why it's used
+### Why It's Used
 
 - **Key Distribution:** The process of sharing key securely. This solves the symmetric "shared secret" problem.
     - For data privacy
@@ -389,7 +387,7 @@ This is why **Signature = Integrity + Authenticity**.
 
 - **Trust:** Foundation for JWT (RS256), OAuth 2.0, OIDC, and TLS (HTTPS).
 
-### Mathematical property
+### Mathematical Property
 
 - Public & Private keys are mathematically related
 - But:
@@ -411,23 +409,32 @@ This is why **Signature = Integrity + Authenticity**.
     - They are signed claims
     - OAuth Token Flow (simplified)
 
-### Sequence Diagram
+### Sequence Diagram (Asymmetric Crypto)
 
 ```mermaid
-            sequenceDiagram
-                participant AS as Authorization Server
-                participant Client
-                participant RS as Resource Server
+sequenceDiagram
+    participant AS as Authorization Server
+    participant Client
+    participant RS as Resource Server
 
-                Note over AS: 1. Generate Token
-                Note over AS: 2. Sign Token (Private Key)
-                AS->>Client: Issued Signed JWT
+    %% --- TOKEN CREATION (GREEN: TRUSTED AUTH SERVER) ---
+    rect rgb(220, 245, 220)
+        Note over AS: 1. Generate Token
+        Note over AS: 2. Sign Token (Private Key)
+        AS->>Client: Issued Signed JWT
+    end
 
-                Client->>RS: Request + JWT
+    %% --- TOKEN USAGE (BLUE: CLIENT TRANSPORT) ---
+    rect rgb(220, 235, 255)
+        Client->>RS: Request + JWT
+    end
 
-                Note over RS: 3. Verify Signature (Public Key)
-                Note over RS: 4. Check Identity/Permissions
-                RS-->>Client: Success (Resource Access)
+    %% --- TOKEN VERIFICATION (ORANGE: VALIDATION ZONE) ---
+    rect rgb(255, 235, 205)
+        Note over RS: 3. Verify Signature (Public Key)
+        Note over RS: 4. Check Identity / Permissions
+    end
+
 ```
 
 - **Why HTTPS is Possible:** Uses a TLS Handshake where the server sends a Public Key, the client encrypts a symmetric session key with it, and the server decrypts it with the Private Key.
@@ -450,7 +457,7 @@ This is why **Signature = Integrity + Authenticity**.
 
 ---
 
-## 0.4 Digital Signatures
+## 0.4 – Digital Signatures
 
 - Bridge between cryptography and real-world trust(JWT, OAuth, HTTPS).
 - **Integrity:** Data not altered by even 1 bit.
@@ -481,53 +488,48 @@ This is why **Signature = Integrity + Authenticity**.
 ### Visual Representation
 
 ```mermaid
+%%{ init: { "theme": "base" } }%%
 graph TD
-    %% Global Styles for Dark Theme
-    classDef default fill:#1e1e1e,stroke:#888,color:#fff;
-    classDef data fill:#006064,stroke:#4dd0e1,color:#fff;
-    classDef key fill:#4a1412,stroke:#ff5252,color:#ff5252,stroke-width:2px;
-    classDef process fill:#333,stroke:#ffd54f,color:#ffd54f;
-    classDef success fill:#1b5e20,stroke:#69f0ae,color:#69f0ae;
-    classDef failure fill:#b71c1c,stroke:#e57373,color:#e57373;
-    classDef border fill:none,stroke:#444,stroke-dasharray: 5 5;
+
+    %% --- Color Definitions (Simple & Semantic) ---
+    classDef data fill:#e3f2fd,stroke:#90caf9,color:#000;
+    classDef process fill:#fffde7,stroke:#fbc02d,color:#000;
+    classDef key fill:#fce4ec,stroke:#ec407a,color:#000;
+    classDef success fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
+    classDef failure fill:#ffebee,stroke:#e53935,color:#b71c1c;
 
     %% --- SENDER / REQUESTER PROCESS ---
-    subgraph REQUESTER ["📤 STEP 1: REQUESTER (CREATION)"]
+    subgraph REQUESTER["STEP 1: REQUESTER"]
         direction TB
-        Payload[Raw Data / Claims]:::data --> Hash1(Hash Function):::process
-        Hash1 --> Digest1[Data Digest]:::process
+        Payload[Raw Data / Claims]:::data --> Hash1[Hash Function]:::process
+        Hash1 --> Digest1[Data Digest]:::data
 
-        Secret1[[Private Key / Secret]]:::key --> Sign[Signing Operation]:::process
+        Secret1[Private Key / Secret]:::key --> Sign[Signing Operation]:::process
         Digest1 --> Sign
 
         Sign --> Signature[Digital Signature]:::data
     end
 
     %% --- TRANSMISSION ---
-    Signature -- "Attached as Part of Token" --> Incoming
-    Payload -- "Sent as Plaintext" --> Incoming
+    Signature --> Incoming[Incoming Token]:::data
+    Payload --> Incoming
 
     %% --- RECIPIENT / SERVER PROCESS ---
-    subgraph SERVER ["🛡️ STEP 2: SERVER (VALIDATION)"]
+    subgraph SERVER["STEP 2: SERVER"]
         direction TB
-        Incoming[Incoming Token]:::data --> Split{Split Data}
+        Incoming --> Split[Split Data]:::process
 
-        subgraph Hashing ["Hashing Logic"]
-            Split -- "Extract Data" --> Recalculate(Hash Function):::process
-            Key2[[Public Key / Secret]]:::key --> Recalculate
-            Recalculate --> ComputedSig[Computed Signature]:::process
-        end
+        Split --> Recalculate[Hash Function]:::process
+        Key2[Public Key / Secret]:::key --> Recalculate
+        Recalculate --> ComputedSig[Computed Signature]:::data
 
-        Split -- "Extract Signature" --> Compare
-        ComputedSig --> Compare{Match?}:::process
+        Split --> Compare[Compare Signatures]:::process
+        ComputedSig --> Compare
 
-        Compare -- YES --> OK[✅ AUTHORIZED]:::success
-        Compare -- NO --> ERR[❌ DENIED]:::failure
+        Compare --> OK[AUTHORIZED]:::success
+        Compare --> ERR[DENIED]:::failure
     end
 
-    %% Aesthetics
-    style REQUESTER fill:#1a1a2e,stroke:#5c6bc0
-    style SERVER fill:#16213e,stroke:#00e676
 ```
 
 - You generate a hash from the received document.
@@ -537,63 +539,61 @@ graph TD
 
 ---
 
-## 0.5 Hashing & Password Security
+## 0.5 – Hashing & Password Security
 
-## 1. Terminologies
+### Hashing & Password Terminologies
 
-### Password Hashing
+#### Password Hashing
 
 The process of converting a password into a one-way cryptographic value for storage.
 
-### One-way Function
+#### One-way Function
 
 Easy to compute.
 Computationally infeasible to reverse.
 
-### Salt
+#### Salt (Password Hashing)
 
 Random, unique data added to a password before hashing.
 
-### Pepper
+#### Pepper
 
 A secret value added to all passwords in addition to salt.
 Stored outside the database.
 
-### Rainbow Table
+#### Rainbow Table
 
 A precomputed list of common passwords and their hashes.
 
-### Brute-Force Attack
+#### Brute-Force Attack
 
 Systematically trying many passwords until one matches.
 
-## 2. What Is Password Hashing
+#### What Is Password Hashing
 
 - We never store passwords; we store **proofs that a password was correct**.
 - A password hash **cannot be decrypted**.
 
-**Verification Flow**
+### Verification Flow
 
 - User enters password.
 - System computes:
-    - `hash(password + salt)`
+    - <kbd>hash(password + salt)</kbd>
 - Computed hash is compared with the stored hash.
 
-### 3. Why Password Hashing Is Used
-
-#### Why Not Encryption?
+### Why Password Hashing Is Used, Why Not Encryption?
 
 - Encryption can be reversed.
 - If the encryption key leaks, **all passwords leak**.
 
-#### Why Hashing Is Correct
+### Why Hashing Is Correct
 
 - Hashing is one-way.
 - Database breach ≠ password disclosure.
 - Limits blast radius.
 - If a system can decrypt passwords, it is already insecure.
 
-### 4. Why Normal Hashes Are Not Enough
+### Why Normal Hashes Are Not Enough
 
 - Algorithms such as:
     - SHA-256
@@ -605,7 +605,7 @@ Systematically trying many passwords until one matches.
 
 - Fast hashing ⇒ easy brute-force attacks.
 
-### 5. What Password Hashing Algorithms Do Differently
+### What Password Hashing Algorithms Do Differently
 
 - Password-safe algorithms:
     - Are intentionally slow.
@@ -617,7 +617,7 @@ Systematically trying many passwords until one matches.
     - argon2
     - scrypt
 
-### 6. How Salt Protects You
+### How Salt Protects You
 
 - Passwords are hashed as:
     - `hash(password + uniqueSalt)`
@@ -638,12 +638,12 @@ Systematically trying many passwords until one matches.
 - Stored in environment variables.
 - Protects against database-only breaches.
 
-### 7. Passwords Are Verified, Not Recovered
+### Passwords Are Verified, Not Recovered
 
 - Passwords are never decrypted or retrieved.
 - They are only verified by hash comparison.
 
-### 8. Password Hashing & verification Flow
+### Password Hashing & Verification Flow
 
 ```mermaid
 graph TD
@@ -702,9 +702,11 @@ graph TD
 
 **Code**: [passwordHashing.js](./code/phase-0/passwordHashing.js)
 
-# Phase 1 – Authentication & Authorization Foundations
+# Phase 1 Authentication & Authorization Foundations
 
-## 1.1 Authentication (AuthN)
+## 1.1 Authentication & Authorization Terminologies
+
+### Authentication (AuthN)
 
 - Authentication (AuthN) is a process by which a system verifies that an entity (user or system) is genuinely who it claims to be.
 - It is usually done by validating credentials such as:
@@ -713,7 +715,7 @@ graph TD
     - Cryptographic proofs
 - In simple terms, **Authentication establishes identity, not permissions**.
 
-## 1.2 Authorization (AuthZ)
+### Authorization (AuthZ)
 
 - Authorization (AuthZ) is a process by which a system determines whether an already authenticated entity is allowed to:
     - Perform a specific action
@@ -721,7 +723,7 @@ graph TD
 - Authorization is always evaluated **after authentication**.
 - It enforces business rules and access control.
 
-## 1.3 Identity (Who)
+### Identity (Who)
 
 - Identity is the verified representation of an entity inside the system after successful authentication.
 - It is typically expressed as:
@@ -734,7 +736,7 @@ graph TD
 - Identity is the **source of truth**.
 - **Focus:** Authentication (AuthN)
 
-## 1.4 Principal (What)
+### Principal (What)
 
 - A Principal is the authenticated entity that is currently interacting with the system, such as:
     - A logged-in user
@@ -745,37 +747,37 @@ graph TD
 - **Focus:** Authorization (AuthZ)
 - One identity can have multiple principals.
 
-## 1.5 Policy
+### Policy
 
 - A Policy is a set of rules that determines whether a principal with certain attributes or permissions is allowed to perform a requested action.
 - Policies are the mechanism through which authorization decisions are enforced.
 - A policy is the **rule book** or the **contract**.
 
-## 1.6 Permission
+### Permission
 
 - A Permission is a specific, well-defined action that a principal is allowed to perform, such as:
     - Reading data
     - Modifying a resource
     - Deleting an entity
 
-## 1.7 Analogy
+### Analogy
 
 - **Identity:** Me (the human)
 - **Principal:** The specific account/session representing _me_ (`request.user`)
 - **Role:** Admin (the “hat” the principal is wearing) (`principal.role`)
-- **Policy:**  
+- **Policy:**
   “The Admin role is allowed to Read and Write, but NOT Delete.”
-- **Permission:**  
+- **Permission:**
   Read, Write
 
-## 1.8 Flow
+### Identity → Principal → Permission Flow
 
-- Identity (Login)  
-  → Creates Principal (User Object)  
-  → Contains Role (Admin)  
-  → Grants Permissions (Read / Write / Delete)
+- Identity (Login)
+    - → Creates Principal (User Object)
+    - → Contains Role (Admin)
+    - → Grants Permissions (Read / Write / Delete)
 
-## 1.9 Express middleware responsibility code example
+## 1.2 Authorization in Express.js
 
 ```js
 // 1. IDENTITY: The person who logged in (e.g., Sarah)
@@ -827,21 +829,23 @@ if (principal.role === "Admin") {
 }
 ```
 
-## 1.10 Request Lifecycle
+## 1.3 Request Lifecycle
 
 - Authentication middleware validates identity
 - Identity context is attached to request
 - Authorization logic evaluates permissions
 - Business logic executes only if allowed
 
-## 1.11 HTTP Semantics
+### HTTP Semantics
 
 - 401 Unauthorized means the system does not know who you are
 - 403 Forbidden means the system knows who you are but refuses the action
 
-#### 1.12 Code : [AuthMiddleware.js](./code/phase-1/AuthMiddleware.js)
+## 1.4 Code Example
 
-### 1.13 Sequence Diagram
+Refer to [AuthMiddleware.js](./code/phase-1/AuthMiddleware.js)
+
+## 1.5 Sequence Diagram (AuthN Flow)
 
 ```mermaid
 graph TD
@@ -852,11 +856,13 @@ graph TD
 
 ---
 
-# Phase 2 - JWT (Token-Based Security)
+# Phase 2 JWT (Token-Based Security)
+
+## JWT Overview
 
 _A JSON Web Token is a Compact, URL-safe string that represents a set of claims between two parties. The information inside the JWT can be trusted because it was signed using cryptography. JWTs are commonly used to represent authenticated users and [*Delegated access*](#a-delegated-access) in web application and APIs_
 
-## 2.1 Terminologies
+## 2.1 JWT Terminology
 
 ### Token
 
@@ -907,7 +913,7 @@ _`header.payload.signature`_
 
 Each part is Base64URL-encoded and has specific responsibility
 
-### 2.3.1 JWT Header
+### JWT Header
 
 The header contains the metadata about the token, including the type of the token and cryptographic algorithm used to sign it.
 
@@ -923,7 +929,7 @@ The header contains the metadata about the token, including the type of the toke
 
 > Note : The Server must not blindly trust the <kbd>alg</kbd> value from the token. Allowed algorithm must be enforced by the server configurations
 
-### 2.3.2 JWT Payload (Claims)
+### JWT Payload (Claims)
 
 The payload contains the claims, which are statements about the subject of the token. or The Payload contains the information about the entity (typically user) and additional entity attributes. which are called claims.
 
@@ -945,7 +951,7 @@ This payload assert the following:
 - The token was issued at a specific time
 - The token expires at a specific time
 
-> #### _Important Rule About the Payload_
+> _Important Rule About the Payload_
 >
 > The JWT payload is not encrypted, It is only Base64RL-encoded, which means anyone who has the token can decode and read the claims
 >
@@ -954,11 +960,11 @@ This payload assert the following:
 > - Sensitive data such as passwords or secrets must never be stored in a JWT payload
 > - JWTs should only contain information that is safe to expose.
 
-### Types of JWT Claims
+#### Types of JWT Claims
 
 JWT Claims are generally categorized into three types
 
-#### 1. Registered Claims
+_1. Registered Claims_
 
 Registered claims are predefined claim names which are defined by JWT specification. They are optional but have standard meaning when used.
 
@@ -970,7 +976,7 @@ _Examples include_:
 - <kbd>exp</kbd> (expiration)
 - <kbd>iat</kbd> (issued at)
 
-#### 2. Public claims
+_2. Public claims_
 
 Public claims are claims intended to shared across systems. These claims should be standardize or namespaced to avoid collisions.
 
@@ -979,7 +985,7 @@ _Examples include_:
 - email
 - profile
 
-#### 3. Private claims
+_3. Private claims_
 
 Private claims are custom claims which are defined by your application. They are used to carry application specific information.
 
@@ -990,7 +996,7 @@ Private claims are custom claims which are defined by your application. They are
 }
 ```
 
-### 2.3.3 JWT Signature
+### JWT Signature
 
 The Signature is the most important part of the JWT because it established trust.
 
@@ -1012,7 +1018,7 @@ _If any part of the token changes, signature verification fails_
 
 ---
 
-## 2.4 How JWT Verification Works
+## 2.4 JWT Verification Flow
 
 When a server receives a JWT, it performs the following steps:
 
@@ -1039,7 +1045,7 @@ This Code:
 - Ensures the token is intended for the correct audience(aud)
 - Returns the decoded claims if valid
 
-## 2.5 What JWT Is an Is Not Responsible For
+## 2.5 What JWT Is and Is Not Responsible For
 
 - JWT is responsible for:
     - Securely carrying claims
@@ -1051,7 +1057,7 @@ This Code:
     - Token storage security
     - Preventing token that
 
-## 2.6 HS256 vs RS256
+## 2.6 JWT - HS256 vs RS256
 
 _*Signing Algorithm* defines how the JWT signature is created and verified. It specifies_
 
@@ -1059,37 +1065,39 @@ _*Signing Algorithm* defines how the JWT signature is created and verified. It s
 - _The type of key used_
 - _How integrity and authenticity are enforced_
 
-## 2.6.1 Terminologies
+### HS256 vs RS256 – Terminology
 
-### HMAC (Hash-Based Message Authenticated Code)
+#### HMAC (Hash-Based Message Authenticated Code)
 
 - A cryptographic technique that combines a hash function and a secret key to produce a signature.
 
-### SHA-256 (Secure Hash Algorithm)
+#### SHA-256 (Secure Hash Algorithm)
 
 - A secure hash algorithm that produces a fixed 256-bit hash value.
 
-### RSA
+#### RSA
 
 - An asymmetric cryptographic algorithm that uses a public key and private key pair.
 
-### Signing key
+#### Signing key
 
 - The secret or private key used to generate a JWT signature.
 
-### Verification Key
+#### Verification Key
 
 - The key used to verify that the JWT signature is valid.
 
-## 2.6.2 What are HS256 and RS256?
+### What are HS256 and RS256?
 
 - HS256 and RS256 are JWT signing algorithms
 - Their job is not encryption
 - Their job is to prove that the token was issued by trusted authority and was not modified.
 
-## 2.6.3 Internal Working
+### Internal Working
 
-### _HS256(HMAC + SHA-256)_
+---
+
+#### _HS256(HMAC + SHA-256)_
 
 HS256 uses one single secret key.
 
@@ -1123,7 +1131,7 @@ This is symmetric cryptography.
 >
 > This is extremely important.
 
-### _RS256(RSA + SHA+256)_
+#### _RS256(RSA + SHA+256)_
 
 RS256 uses a Key pair:
 
@@ -1154,27 +1162,23 @@ This is asymmetric cryptography.
 >
 > This separation is intentional and powerful
 
-## 2.6.4 Why AuthO strongly Recommends RS256
-
-According to AuthO:
-
-#### HS256 problems in real systems
+## 2.7 HS256 Problems in Real Systems
 
     - Secret must be shared across services
     - Secret leakage compromises entire system
     - Difficult key rotation
     - Risk of algorithm confusion attacks
 
-#### RS257 Advantages
+## 2.8 RS257 Advantages
 
     - Private key never leaves auth server
     - Public key can safely distributed
     - Multiple APIs can verify token independently
     - Supports zero-trust and microservice architectures
 
-## 2.7 Token Lifecycle
+## 2.9 JWT - Token Lifecycle
 
-### 2.7.1 Token Issuance
+### Token Issuance
 
 Token issuance is the process by which authorization server creates a JWT and gives it to a client after successfully verifying the user's identity.
 
@@ -1201,7 +1205,7 @@ _When issuance occurs, the authorization server_:
 }
 ```
 
-### 2.7.2 Token Usage
+### Token Usage
 
 Token Usage is the act of sending the issued JWT along with each API to prove identity and permissions.
 
@@ -1218,7 +1222,7 @@ For every protected request, the API:
 
 This process occurs for every request, not once per login
 
-### 2.7.3 Token Expiration
+### Token Expiration
 
 Token expiration defines the maximum lifetime of a JWT using the <kbd>exp</kbd> claim.
 
@@ -1233,7 +1237,7 @@ During validation, the API compares:
 
 If the current time is greater than than <kbd>exp</kbd>, the token is rejected immediately.
 
-### 2.7.4 Token Invalidation
+### Token Invalidation
 
 Token invalidation means making a token unusable before its expiration time.
 
@@ -1250,60 +1254,75 @@ In practice, system rely on strategies such as:
 
 These mechanisms introduce controlled state, which we will cover in later phase.
 
-### 2.7.5 Sequence Diagram
+### Sequence Diagram (Token Lifecycle)
 
 ```mermaid
-
 sequenceDiagram
     participant User
     participant Client
     participant AuthServer as Authorization Server
     participant API as Resource Server
 
-    User->>Client: Submit login credentials
-    Client->>AuthServer: Authentication request
-    AuthServer->>AuthServer: Verify identity
-    AuthServer-->>Client: Issue signed JWT
-
-    loop Each API request
-        Client->>API: Request with Authorization Bearer JWT
-        API->>API: Verify signature
-        API->>API: Validate exp iss aud
-        API-->>Client: Authorized response
+    %% --- AUTHENTICATION & TOKEN ISSUANCE (GREEN) ---
+    rect rgb(220, 245, 220)
+        User->>Client: Submit login credentials
+        Client->>AuthServer: Authentication request
+        AuthServer->>AuthServer: Verify identity
+        AuthServer-->>Client: Issue signed JWT
     end
 
-    Note over Client,API: Token remains valid until expiration time
+    %% --- TOKEN USAGE (BLUE) ---
+    rect rgb(220, 235, 255)
+        loop Each API request
+            Client->>API: Request with Authorization Bearer JWT
+            API->>API: Verify signature
+            API->>API: Validate exp iss aud
+            API-->>Client: Authorized response
+        end
+    end
 
-    API->>API: Current time exceeds exp
-    API-->>Client: Reject request (token expired)
+    %% --- TOKEN LIFETIME (GRAY) ---
+    rect rgb(240, 240, 240)
+        Note over Client,API: Token remains valid until expiration time
+    end
 
-    Note over AuthServer,API:  Early invalidation requires extra state
-    Note over AuthServer: Examples: denylist, token version, rotation
+    %% --- TOKEN EXPIRATION (RED) ---
+    rect rgb(255, 230, 230)
+        API->>API: Current time exceeds exp
+        API-->>Client: Reject request (token expired)
+    end
+
+    %% --- EARLY INVALIDATION (ORANGE) ---
+    rect rgb(255, 235, 205)
+        Note over AuthServer,API: Early invalidation requires extra state
+        Note over AuthServer: Examples: denylist, token version, rotation
+    end
+
 ```
 
-## 2.8 Token Types
+## 2.10 JWT - Token Types
 
-## 2.8.1 Terminologies
+### JWT – Token Terminology
 
-### Token Type
+#### Token Type
 
 A token type describes the purpose for which a token is issued and how it is expected to be used.
 
-### Access Token
+#### Access Token (term)
 
 An Access token is a token used by a client to **access a protected API**.
 
-### ID Token
+#### ID Token (term)
 
 An ID token is a token used to **prove that a user has authenticated and to carry user identity information**.
 
-### Refresh Token
+#### Refresh Token (term)
 
 A refresh token is a token used to **obtain new access tokens without re-authenticating the user**.
 
 _These names come directly from OAuth 2.0 and OpenID Connect, which AuthO implements_
 
-### 2.8.2 Access Token
+### Access Token
 
 An Access token represents authorization, not identity.
 
@@ -1338,7 +1357,7 @@ The API validates the token and enforces authorization based on its contents.
 > - Validate by APIs
 > - Enforced by APIs
 
-### 2.8.3 ID Token (OIDC)
+### ID Token (OIDC)
 
 An ID Token represents authentication, not authorization.
 
@@ -1364,7 +1383,7 @@ An ID token typically includes:
 
 ID tokens are consumed by the client, not APIs
 
-### 2.8.4 Refresh Token
+### Refresh Token
 
 A refresh token is a longer-lived credential used to obtain new access tokens.
 
@@ -1390,7 +1409,7 @@ _How refresh tokens are used_
 
 **APIs never see refresh tokens**
 
-### 2.8.5 Real-World Token Separation
+### Real-World Token Separation
 
 AuthO enforces strict separation:
 
@@ -1400,35 +1419,35 @@ AuthO enforces strict separation:
 | ID Token      | Client  | Client Only | Authentication     |
 | Refresh Token | Client  | Auth server | Session continuity |
 
-## 2.9 Secure Token Storage
+## 2.11 JWT - Secure Token Storage
 
-## 2.9.1 Terminologies
+### JWT – Secure Token Terminology
 
-### Token Storage
+#### Token Storage
 
 Token storage is the place where a client application **keeps authentication tokens between requests.**
 
-### Browser Storage
+#### Browser Storage
 
 Browser storage is a mechanism provided by the browser to persist data, such as cookies and web storage.
 
-### XSS (Cross-site scripting)
+#### XSS (Cross-site scripting)
 
 XSS is an attack where an attacker injects malicious javascript code into a trusted website, causing browser to execute attacker-controlled code.
 
-### CSRF (Cross-site Request Forgery)
+#### CSRF (Cross-site Request Forgery)
 
 CSRF is an attack where a browser is tricked into sending authenticated requests to a server **without user's intent.**
 
-### HttpOnly Cookie
+#### HttpOnly Cookie
 
 An HttpOnly Cookie is a cookie that **cannot be accessed by javascript**, even if XSS exists.
 
-### SameSite
+#### SameSite
 
 SameSite is a cookie attribute that controls **whether cookies are sent with cross-site requests**.
 
-## 2.9.2 _What Secure Token Storage Means_
+### What Secure Token Storage Means
 
 Secure token storage means choosing a storage mechanism that minimized the risk of token theft and misuse.
 
@@ -1437,7 +1456,7 @@ Secure token storage means choosing a storage mechanism that minimized the risk 
 
 The goal of secure storage is to reduce the probability that attackers can access the key.
 
-## 2.9.3 _Why Token Storage is a Security problem_
+### _Why Token Storage is a Security problem_
 
 The core problem
 
@@ -1451,9 +1470,9 @@ They execute:
 
 If a token is stored where javascript can read it, **any successful XSS attack becomes an account takeover**.
 
-## 2.9.4 Storage Options and Risks
+### Storage Options and Risks
 
-### A. LocalStorage
+#### A. LocalStorage
 
 LocalStorage stores key-value data in the browser and allows **full Javascript read/write access**.
 
@@ -1469,7 +1488,7 @@ If XSS occurs:
 
 LocalStorage offer **Zero Protection** against XSS.
 
-### B. SessionStorage
+#### B. SessionStorage
 
 SessionStorage is similar to LocalStorage but is scoped to a browser tab.
 
@@ -1481,7 +1500,7 @@ XSS impact is the same as LocalStorage.
 
 The Only difference is lifetime, not security.
 
-### C. Cookies (Without Security Flags)
+#### C. Cookies (Without Security Flags)
 
 [Cookies](#b-cookies) are automatically sent by the browser with HTTP requests to matching domain.
 
@@ -1495,7 +1514,7 @@ without proper flags:
 
 Cookies are not secure by default
 
-### D. HttpOnly Cookies (Recommended)
+#### D. HttpOnly Cookies (Recommended)
 
 How HttpOnly Cookies works
 
@@ -1516,7 +1535,7 @@ Even is XSS exists:
 
 This significantly reduces blast radius.
 
-### E. SameSite Attribute(CSRF Mitigation)
+#### E. SameSite Attribute(CSRF Mitigation)
 
 Why SameSite exists
 
@@ -1541,9 +1560,9 @@ AuthO's recommended browser pattern:
 - Use Short-lived access tokens
 - Rely on automatic cookie sending
 
-# PHASE 3 — OAuth 2.0 (Authorization Framework)
+# Phase 3 OAuth 2.0 (Authorization Framework)
 
-## 3.1 OAuth 2.0 Core Terminologies
+## 3.1 OAuth 2.0 – Core Terminology
 
 ### Resource Owner
 
@@ -1587,7 +1606,7 @@ Instead, it receives tokens from clients and validates them to decide whether ac
 
 The Resource Server trusts the Authorization Server to have performed authentication correctly.
 
-## 3.1.1 Scope
+### Scope
 
 A Scope is **a way to limit what a client is allowed to do.**
 
@@ -1597,7 +1616,7 @@ For example, a token may allow reading user data not modifying it.
 
 Scopes are critical because they enforce **the principle of least privilege**, when means giving only the minimum access required.
 
-## 3.1.2 What OAuth 2.O Is (Conceptually)
+### What OAuth 2.0 Is (Conceptually)
 
 OAuth 2.0 is **not an authenticated protocol**.
 
@@ -1605,7 +1624,7 @@ OAuth 2.0 is **a delegated Authorization framework**.
 
 It core purpose is to allow a Resource owner to **grant limited access to their data** to a Client **without sharing credentials** such as passwords
 
-## 3.1.3 Why OAuth 2.0 Exists
+### Why OAuth 2.0 Exists
 
 The Problem OAuth solves
 
@@ -1622,7 +1641,7 @@ OAuth 2.0 exists to **eliminate credential sharing entirely**.
 
 Instead of passwords, OAuth uses **time-limited tokens with limited permissions**.
 
-## 3.1.4 Technical Perspective - How These Roles Work Together
+### Technical Perspective
 
 In a typical OAuth interaction:
 
@@ -1632,11 +1651,9 @@ In a typical OAuth interaction:
 - The **Resource Server** enforces access using tokens
 - **Scopes** defines the boundaries of that access
 
-Each role has a **single responsibility**, and none of them overlap by accident
-
 This strict separation is what makes OAuth secure and scalable
 
-## 3.1.5 Sequence Diagram
+### Sequence Diagram (OAuth Interaction)
 
 ```mermaid
 sequenceDiagram
@@ -1645,22 +1662,35 @@ sequenceDiagram
     participant AS as Authorization Server
     participant RS as Resource Server (API)
 
-    RO->>Client: Uses application
-    Client->>RO: Requests permission to access data
+    %% --- CLIENT INTERACTION (BLUE) ---
+    rect rgb(220, 235, 255)
+        RO->>Client: Uses application
+        Client->>RO: Requests permission to access data
+    end
 
-    RO->>AS: Authenticates and gives consent
-    AS->>AS: Validate identity and consent
+    %% --- AUTHENTICATION & CONSENT (GREEN) ---
+    rect rgb(220, 245, 220)
+        RO->>AS: Authenticates and gives consent
+        AS->>AS: Validate identity and consent
+    end
 
-    AS-->>Client: Issue Access Token with scopes
+    %% --- TOKEN ISSUANCE (LIGHT GREEN) ---
+    rect rgb(235, 250, 235)
+        AS-->>Client: Issue Access Token with scopes
+    end
 
-    Client->>RS: API request with Access Token
-    RS->>RS: Validate token and scopes
-    RS-->>Client: Protected resource response
+    %% --- RESOURCE ACCESS (ORANGE) ---
+    rect rgb(255, 235, 205)
+        Client->>RS: API request with Access Token
+        RS->>RS: Validate token and scopes
+        RS-->>Client: Protected resource response
+    end
+
 ```
 
-## 3.2 OAuth Grant Types
+## 3.2 OAuth 2.0 – Grant Types
 
-## 3.2.1 Terminologies
+### OAuth 2.0 – Grant Terminology
 
 #### Grant Type
 
@@ -1675,7 +1705,7 @@ It describes:
 
 Grant types exist because **different clients have different risk levels and capabilities**
 
-## 3.2.2 Concept - What OAuth 2.0 Grant Types Are
+### What OAuth 2.0 Grant Types Are
 
 OAuth 2.0 Grant types are _standardized authorization flows_.
 
@@ -1685,7 +1715,7 @@ OAuth does not allow clients to invent their own flow.
 
 Only well-defined grant types are allowed. because authorization logic must be **predictable and auditable**
 
-## 3.2.3 The Main OAuth 2.0 Grant Types
+### The Main OAuth 2.0 Grant Types
 
 **_Authorization Code Grant (Most Important)_**
 
@@ -1784,11 +1814,7 @@ Modern security guidance, including AuthO's, **Strongly discourage its use**
 
 It has been replaced by **Authorization code grant with PKCE (Proof key for Code Exchange)**
 
-##check
-
----
-
-## 3.2.4 Sequence Diagram
+### Sequence Diagram (Grant Types)
 
 ```mermaid
 ---
@@ -1832,14 +1858,295 @@ sequenceDiagram
     rect rgb(148, 213, 230)
         Client->>RS : Access data with Access token
     end
+
+```
+
+## 3.3 OAuth 2.0 – Authorization Code Flow
+
+> ### Example Scenario
+>
+> - **User** : A real human using a browser
+> - **Client** : A web Application built with Express(example.com)
+> - **Authorization Server** : AuthO
+> - **Resource Owner** : Orders API (/orders)
+>
+> Goal : The user wants to login and then **access protected APIs** without sharing their password with the app
+
+### Authorization Code Terminology
+
+**_Authorization Code_**
+
+An authorization code is a short-lived, one-time credential issued by the Authorization Server after the user successfully authenticates and gives consent.
+
+This code does not grant access to APIs by itself.
+
+Its only purpose is to be exchanged for tokens over a secure backend channel.
+
+**_Redirect URI_**
+
+A Redirect URI is **a pre-registered endpoint on the client application** where the Authorization Server is allowed to send the authorization code.
+
+**_Back-Channel Communication_**
+
+Back-Channel communication refers to **server-to-server communication** that is not exposed to the browser
+
+In OAuth, token exchange always happen over a back-channel to protect secrets and tokens.
+
+### Redirect-Based Authorization
+
+Redirect-based authorization means the **client application never asks for user's username and password**
+
+Instead, the client redirects the user's browser to Authorization server, where authentication happens
+
+This is security boundary
+
+_Why OAuth uses redirects_
+
+Browsers are good at:
+
+- Showing login pages
+- Handling user interactions
+- Following redirects
+
+Browsers are not good at:
+
+- Storing secrets
+- Handling access tokens
+- Making security decisions
+
+Redirect allows:
+
+- User authentication happens outside **the client**
+- Credentials to be entered only at the **Authorization Server**
+
+_What actually happens in our example_
+
+1. User clicks "Login" on **example.com**
+2. The Express app **redirects to browser** to AuthO
+3. The browser leaves **example.com** completely
+
+At this point:
+
+- The client does **does not know the password**
+- The browser is just following a redirect
+
+```javascript
+app.get("/login", (req, res) => {
+    const authUrl = buildAuth0AuthorizeUrl({
+        client_Id,
+        redirect_uri,
+        scope,
+        response_type: "code",
+    });
+
+    res.redirect(authUrl);
+});
+
+// This route does not authenticate
+// It only starts the authorization process
+```
+
+#### Authorization Code Exchange
+
+The authorization code exchange is a **server to server operation** where the client exchange/trades a short lived code for tokens.
+
+The browser is not involved here.
+
+_Why the code exist at all_
+
+The authorization code act as a **temporary proof of successful authentication and consent**
+
+It exists to:
+
+- Prevent tokens from appearing in URLs
+- Prevent tokens from being exposed to Javascript
+- Allow tokens issuance only after client authentication
+
+This Code intentionally:
+
+- Short-lived
+- Single-use
+- Useless without client authentication
+
+_What happens technically_
+
+1. Client backend sends the code to the Authorization Server
+2. Client authenticates itself (client secret / PKCE)
+3. Authorization server verifies.
+    - Code validity
+    - Client identity
+    - Redirect URI
+4. Tokens are issued to the backend.
+
+#### Token Trust Boundaries (Critical Concept)
+
+_What a trust boundary is_
+
+A token trust boundary is a logical security perimeter where data (specifically authentication tokens like JWTs) **transitions from an untrusted state to a trusted state**. It represents the point where a system validates a token's signature, claims, and issuer before granting access, ensuring that unverified, external, or user-supplied data cannot be used to authorize action
+
+| Boundary             | What is trusted       | what is not trusted |
+| -------------------- | --------------------- | ------------------- |
+| Browser              | User interaction      | Token storage       |
+| Client Backend       | Secrets, tokens       | User credentials    |
+| Authorization Server | Identity verification | client honesty      |
+| Resource Server      | Token Validation      | User sessions       |
+
+_Why boundaries matter_
+
+If token cross into the browser:
+
+- XSS can steal them
+- Extension can exfiltrate them
+- URLs can leak them
+
+OAuth prevents this by ensuring:
+
+- Browser -> only sees redirects and codes
+- Backend -> only sees tokens
+- API -> only see access tokens
+
+Breaking a boundary breaks **OAuth security**
+
+### Why Tokens Must Never Appear in the Browser
+
+**Browser threat model (real world)**
+
+Browsers are exposed to:
+
+- Cross-Site Scripting (XSS)
+- Malicious extensions
+- History and referrer leakage
+- Debug tools and logs
+
+An access token in the browser is equivalent to **handing control to attacker**
+
+OAuth's Authorization Code Flow exists **specifically to prevent this**
+
+_Security guarantee provided_
+
+If implemented correctly:
+
+- Tokens never enter Javascript memory
+- Tokens never appears in URLs
+- Tokens never touch browser storage
+
+This is **non-negotiable** for secure systems
+
+## 3.4 OAuth 2.0 – Attack Scenarios
+
+### Attack 1: Authorization Code Interception
+
+_Scenario_
+
+An Attacker intercepts the authorization code during redirect.
+
+Why it fails
+
+- The Code is useless without client authentication
+- The Code is single-use and short-lived
+- PKCE further binds the code to the original client
+
+### Attack 2: Token Leakage via Browser
+
+_Scenario_
+Access token is returned directly to the browser
+
+Impact
+
+- XSS steals the token
+- Attacker calls APIs as the user
+
+Prevention
+
+- Authorization Code Flow prevents tokens in the browser entirely
+
+### Attack 3: Malicious Client Implementation
+
+_Scenario_
+
+An attacker tries to exchange a stole code from another client.
+
+Why it fails
+
+- Authorization server validates client identity
+- Redirect URI mismatch
+- Code is bound to a specific client
+
+### Attack 4: API Token Replay
+
+_Scenario_
+
+Stolen access token is replayed against API.
+
+Mitigations
+
+- Short token lifetime
+- Audience validation
+- Scope enforcement
+
+## 3.5 Sequence Diagram (OAuth 2.0 Auth Code flow)
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+  themeVariables:
+    fontFamily: "Verdana"
+    fontSize: "16px"
+    actorFontSize: "18px"
+    messageFontSize: "14px"
+    noteFontSize: "14px"
+    actorFontWeight: "bold"
+    actorTextColor: "#000"
+    signalTextColor: "#000"
+    labelTextColor: "#000"
+---
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Client as Express Backend
+    participant AS as Authorization Server
+    participant API as Resource Server
+
+    %% Redirect-based authorization
+    rect rgb(143, 161, 196)
+        User->>Browser: Click Login
+        Browser->>Client: GET /login
+        Client->>Browser: Redirect to Authorization Server
+        Browser->>AS: Authorization request
+    end
+
+    %% User authentication & consent
+    rect rgb(132, 199, 170)
+        AS->>User: Authenticate user
+        AS->>User: Request consent
+        AS-->>Browser: Redirect with authorization code
+    end
+
+    %% Back-channel token exchange
+    rect rgb(209, 179, 136)
+        Browser->>Client: GET /callback with code
+        Client->>AS: Exchange code + client credentials
+        AS-->>Client: Access token issued
+    end
+
+    %% API access using token
+    rect rgb(161, 119, 182)
+        Client->>API: Request with access token
+        API->>API: Validate token
+        API-->>Client: Protected resource
+    end
+
+
 ```
 
 # Glossary
 
-### A. Delegated access
+## A. Delegated Access
 
 Delegated access is a security mechanism that allow an entity (the "delegate" or "proxy"), to perform an action or access a resource on behave of another (owner or delegator), without sharing owner primary login credentials
 
-### B. Cookies
+## B. Cookies
 
 Cookies are small text files placed on a user's device by a website to remember information, such as login status, shopping cart items, or site preferences
