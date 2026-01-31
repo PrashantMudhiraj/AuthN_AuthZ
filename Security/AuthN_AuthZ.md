@@ -412,6 +412,21 @@ This is why **Signature = Integrity + Authenticity**.
 ### Sequence Diagram (Asymmetric Crypto)
 
 ```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+  themeVariables:
+    fontFamily: "Verdana"
+    fontSize: "16px"
+    actorFontSize: "18px"
+    messageFontSize: "14px"
+    noteFontSize: "14px"
+    actorFontWeight: "bold"
+    actorTextColor: "#000"
+    signalTextColor: "#000"
+    labelTextColor: "#000"
+---
 sequenceDiagram
     participant AS as Authorization Server
     participant Client
@@ -1257,6 +1272,22 @@ These mechanisms introduce controlled state, which we will cover in later phase.
 ### Sequence Diagram (Token Lifecycle)
 
 ```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+  themeVariables:
+    fontFamily: "Verdana"
+    fontSize: "16px"
+    actorFontSize: "18px"
+    messageFontSize: "14px"
+    noteFontSize: "14px"
+    actorFontWeight: "bold"
+    actorTextColor: "#000"
+    signalTextColor: "#000"
+    labelTextColor: "#000"
+---
+
 sequenceDiagram
     participant User
     participant Client
@@ -1656,6 +1687,21 @@ This strict separation is what makes OAuth secure and scalable
 ### Sequence Diagram (OAuth Interaction)
 
 ```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+  themeVariables:
+    fontFamily: "Verdana"
+    fontSize: "16px"
+    actorFontSize: "18px"
+    messageFontSize: "14px"
+    noteFontSize: "14px"
+    actorFontWeight: "bold"
+    actorTextColor: "#000"
+    signalTextColor: "#000"
+    labelTextColor: "#000"
+---
 sequenceDiagram
     participant RO as Resource Owner (User)
     participant Client as Client Application
