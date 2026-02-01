@@ -2,5 +2,5 @@
     // Prevent Markdown preview from following the editor cursor when editing
     "markdown.preview.scrollPreviewWithEditor": false,
 
-    "cSpell.words": ["exfiltrated", "HMAC"]
+    "cSpell.words": ["exfiltrated", "HMAC", "subnetting"]
 }

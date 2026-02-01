@@ -1911,12 +1911,14 @@ sequenceDiagram
 
 > ### Example Scenario
 >
+> ---
+>
 > - **User** : A real human using a browser
 > - **Client** : A web Application built with Express(example.com)
 > - **Authorization Server** : AuthO
 > - **Resource Owner** : Orders API (/orders)
 >
-> Goal : The user wants to login and then **access protected APIs** without sharing their password with the app
+> Goal : The user wants to login and then **access **protected** APIs** without sharing their password with the app
 
 ### Authorization Code Terminology
 
@@ -2436,7 +2438,7 @@ The Authorization Server validates that the code verifier matches the previously
 
 ### Key Difference (Mental Model)
 
-- **Client secret** proves _who the client is_
+- **Client secret** proves _who the client is_\*\*\*\*
 - **PKCE** proves _this is the same client instance_
 
 ---
