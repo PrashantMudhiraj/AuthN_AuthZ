@@ -426,7 +426,7 @@ Example : 192.168.1.10
 
 #### Reference image (classes)
 
-<img src="classes.png" alt="classes">
+<img src="Classes.png" alt="classes">
 
 ## Ports
 
