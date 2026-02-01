@@ -222,7 +222,7 @@ import crypto from "crypto";
  *
  * crypto.createCipheriv('aes-256-cbc', key, iv);
  *  - Creates an AES cipher
- *  - aws-256-cbc
+ *  - aes-256-cbc
  *      - AES algorithm
  *      - 256-bits
  *      - CBC mode -> Cipher Blocking chain
