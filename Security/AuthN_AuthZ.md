@@ -222,7 +222,7 @@ import crypto from "crypto";
  *
  * crypto.createCipheriv('aes-256-cbc', key, iv);
  *  - Creates an AES cipher
- *  - aws-256-cbc
+ *  - aes-256-cbc
  *      - AES algorithm
  *      - 256-bits
  *      - CBC mode -> Cipher Blocking chain
@@ -245,7 +245,7 @@ const key = crypto.randomBytes(32);
 const iv = crypto.randomBytes(16);
 
 function encrypt(text) {
-    const cipher = crypto.createCheriv("aes-256-cbc", key, iv);
+    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
     return cipher.update(text, "utf-8", "hex") + cipher.final("hex");
 }
 
