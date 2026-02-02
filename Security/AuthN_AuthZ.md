@@ -362,7 +362,7 @@ This is why **Signature = Integrity + Authenticity**.
 - **Integrity:** If someone changed the message, the `update` calculation would result in a different tag, and `final` would fail.
 - **Authenticity:** Since the tag is created using your secret Key, only someone with that Key could have created a tag that matches.
 
-**Code:** [symmetricCryptography.js](./code/phase-0/symmetricCryptography.js)
+**Code:** [symmetricCryptography.js](./Code/phase-0/symmetricCryptography.js)
 
 ---
 
@@ -463,7 +463,7 @@ sequenceDiagram
         - Server decrypts with private key
     - Now both share a symmetric session key.
 
-- **Code** : [asymmetricCryptography.js](./code/phase-0/asymmetricCryptography.js)
+- **Code** : [asymmetricCryptography.js](./Code/phase-0/asymmetricCryptography.js)
 
 ### JWT vs OAuth
 
@@ -715,7 +715,7 @@ graph TD
     Failure ~~~ Guarantees
 ```
 
-**Code**: [passwordHashing.js](./code/phase-0/passwordHashing.js)
+**Code**: [passwordHashing.js](./Code/phase-0/passwordHashing.js)
 
 # Phase 1 Authentication & Authorization Foundations
 
@@ -858,7 +858,7 @@ if (principal.role === "Admin") {
 
 ## 1.4 Code Example
 
-Refer to [AuthMiddleware.js](./code/phase-1/AuthMiddleware.js)
+Refer to [AuthMiddleware.js](./Code/phase-1/AuthMiddleware.js)
 
 ## 1.5 Sequence Diagram (AuthN Flow)
 

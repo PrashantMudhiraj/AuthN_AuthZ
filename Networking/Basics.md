@@ -460,4 +460,3 @@ One server runs many services at the same time:
 | Database(MySQL)   | 3306 |
 
 Without ports, the server wouldn't know which service should receive the data
-_**Ports restriction**_
