@@ -843,7 +843,7 @@ if (principal.role === "Admin") {
     // 1. IDENTITY
     identity: {
         userId: "USR_9988",
-        username: "sjenkins",
+        username: "prashant",
         mfaEnabled: true
     },
 
@@ -997,7 +997,7 @@ This payload assert the following:
 
 > _Important Rule About the Payload_
 >
-> The JWT payload is not encrypted, It is only Base64RL-encoded, which means anyone who has the token can decode and read the claims
+> The JWT payload is not encrypted, It is only Base64URL-encoded, which means anyone who has the token can decode and read the claims
 >
 > For this reason:
 >
@@ -1171,7 +1171,7 @@ This is symmetric cryptography.
 
 > **_critical Implication_**
 >
-> - Anyone who can verify the token can also sign new tokens, becaus the same secret is used
+> - Anyone who can verify the token can also sign new tokens, because the same secret is used
 >
 > This is extremely important.
 
@@ -2488,6 +2488,226 @@ The Authorization Server validates that the code verifier matches the previously
 ### Important Note
 
 Modern OAuth guidance recommends **using PKCE in all cases**, even for confidential clients, because it adds an additional security layer with no practical downside.
+
+# PHASE 4 — OpenID Connect (OIDC)
+
+## 4.1 Basics
+
+### What OpenID Connect Actually is
+
+_**OpenId Connect**, Commonly called **OIDC**, is a standard protocol for user authentication._
+
+OAuth 2.0 by itself **does not define authentication**.
+
+OAuth only defines how a client can get permission to access a resource.
+
+Because many applications need login functionality, developers started using OAuth **incorrectly** as a login mechanism. This led to confusion and security problems.
+
+OpenID connect was created to solve this exact problem.
+
+OIDC is an **identity layer built on top of OAuth 2.0**.
+
+It user OAuth flow, but it adds **clear rules, tokens, and validation steps** that answer one specific question"
+
+> _Who is the user that logged in_
+
+---
+
+### Why OAuth Alone is Not Enough
+
+OAuth Answers question like :
+
+- Can this application read user data ?
+- Is this token allowed to access this api ?
+
+OAuth does not answer:
+
+- Who is the user ?
+- When did the user authenticate ?
+- Was multi-factor authentication used ?
+- Is this login fresh or reused ?
+
+Before OIDC existed, each identity provider returned user information in **custom, non-standard formats**.
+
+Clients has to guess how to treat tokens as identity proof, which was unsafe.
+
+OIDC exists to make authentication **explicit, standardize, and verifiable**.
+
+---
+
+### Authentication vs Authorization
+
+Authentication is the process of proving **who a user is**.
+
+Authorization is the process of **deciding what user is allowed to do**.
+
+OIDC is responsible for **authentication**.
+OAuth is responsible for **authorization**.
+
+This separation is intentional and critical for security.
+
+When systems mix these responsibilities, they create vulnerabilities such as:
+
+- Treating access token as identity proof.
+- Allowing APIs to trust user identity without validation.
+
+OIDC prevents these mistakes by clearly separating tokens and responsibilities.
+
+---
+
+### What an ID Token is
+
+The **ID Token** is the central concept in OpenID Connect.
+
+An ID Token is a **Cryptographically signed token** issued by Authorization Server after a **user successfully authenticates**.
+
+Its purpose is **not** to access APIs
+Its purpose is to **prove authentication to the client application**.
+
+You can think of the ID Token as a **Singed Authentication receipt**.
+
+It tells the client:
+
+- A real user authenticated
+- The authentication happened at a trust provider.
+- The identity information has not been tampered with
+
+---
+
+### What information an ID Token Contains
+
+An ID Token contains claims, which are statements about a user and the authentication event.
+
+Some of most important claims are:
+
+- <kbd>iss</kbd> (Issuer): This tells the client **who issued the token**. The Client use this to ensure the token came from the expected identity provider.
+- <kbd>sub</kbd> (Subject): This is a **stable, unique identifier** for the user. It is not email and should not change over time.
+- <kbd>aud</kbd> (Audience): This indicates **which client the token is meant for**. If this does not match the client's IP, the token must be rejected.
+- <kbd>exp</kbd> (Expiration): This defines **how long the token is valid**. Expiration limit the damage if the token is stolen.
+- <kbd>iat</kbd> (Issued at): This indicated **when the authentication happened**.
+
+Together, these allows the client to **verify the authenticity and freshness** of the login.
+
+---
+
+### The UserInfo Endpoint
+
+Sometimes the ID Token does not contain all user profile data.
+
+For this reason, OIDC defines a **UserInfo endpoint**.
+
+The UserInfo endpoint:
+
+- Is protected by an **Access Token**.
+- Returns standardized user profile information.
+- Allows profile retrieval without bloating ID Token.
+
+This keeps authentication lightweight and flexible.
+
+The **UserInfo endpoint** is an OAuth-protected API endpoint exposed by the **Authorization server**.
+
+It is used after **authentication** to fetch **additional user profile information**.
+
+```json
+{
+    "sub": "248289761001",
+    "name": "Prashant Chevula",
+    "given_name": "Prashant",
+    "family_name": "Chevula",
+    "preferred_username": "prashant.chevula",
+    "email": "prashant@example.com",
+    "email_verified": true,
+    "picture": "https://example.com/profile/prashant.jpg",
+    "locale": "en-IN",
+    "updated_at": "2026-01-15T10:20:30Z"
+}
+```
+
+```http
+GET /userInfo
+Authorization: Bearer ACCESS_TOKEN
+```
+
+_**ID Tokens must never be sent to the UserInfo endpoint**_
+
+---
+
+### How OIDC User OAuth Flows
+
+OIDC does **not invent new flows**.
+
+It reuses OAuth flows, most commonly:
+
+- Authorization Code Flow
+- Authorization Code Flow with PKCE
+
+The Key difference is the **scope**.
+
+When a Client includes the <kbd>openid</kbd> scope"
+
+- OAuth authorization becomes **OIDC authentication**.
+- The Authorization Server knows to issue an **ID Token**
+
+So the presence of <kbd>openid</kbd> is what activates OIDC
+
+---
+
+### End-to-End Flow
+
+In a typical OIDC login:
+
+1. The Client redirects the user to the Authorization Server with <kbd>openid</kbd> scope.
+2. The user authenticates and gives consent
+3. The Authorization Server issues an authorization code.
+4. The Client exchanges the code for tokens
+5. The Client receives:
+    - An ID Token (for login)
+    - An Access Token (For APIs)
+6. The client validate the IP Token and established a user session.
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: base
+  themeVariables:
+    fontFamily: "Verdana"
+    fontSize: "16px"
+    actorFontSize: "18px"
+    messageFontSize: "14px"
+    noteFontSize: "14px"
+    actorFontWeight: "bold"
+    actorTextColor: "#000"
+    signalTextColor: "#000"
+    labelTextColor: "#000"
+---
+
+sequenceDiagram
+    participant Client
+    participant AS as Authorization Server
+    participant RO as Resource Owner (User)
+    participant RS as Resource Server
+
+    rect rgb(180, 210, 245)
+        Client->>AS: Authorization request (scope=openid)
+        AS->>RO: Authenticate user
+        AS-->>Client: Authorization Code
+    end
+
+    rect rgb(255, 200, 120)
+        Client->>AS: Exchange code (+ PKCE)
+        AS-->>Client: ID Token + Access Token
+    end
+
+    rect rgb(140, 220, 230)
+        Client->>Client: Validate ID Token (login)
+        Client->>RS: API request with Access Token
+        RS-->>Client: Protected data
+    end
+
+```
+
+#check
 
 # Glossary
 
