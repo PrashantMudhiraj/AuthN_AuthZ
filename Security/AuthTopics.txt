@@ -241,3 +241,310 @@ This document is **final and frozen**. It is designed for **deep understanding +
 ---
 
 🔒 **This syllabus is locked unless explicitly changed by you.**
+-----------------------------------------
+
+
+Authentication & Authorization — Master Index
+PHASE 0 — Cryptography Foundations ✅ Completed
+0.1 Cryptography Terminologies
+
+Plaintext and ciphertext
+
+Encryption vs decryption
+
+Key vs hash
+
+Salt and why it exists
+
+Digital signature (introduced)
+
+0.2 Symmetric Cryptography
+
+Symmetric keys and shared secrets
+
+AES (conceptual)
+
+IV and why it is required
+
+Modes (CBC, GCM)
+
+Risks of key reuse
+
+0.3 Asymmetric Cryptography
+
+Public key and private key
+
+Key pairs and trust
+
+RSA vs Elliptic Curve
+
+Real-world usage
+
+0.4 Digital Signatures
+
+Signing vs encryption
+
+Integrity, authenticity, non-repudiation
+
+Why JWTs are signed, not encrypted
+
+0.5 Hashing & Password Security
+
+Hashing vs encryption
+
+bcrypt / argon2
+
+Salt and cost factor
+
+Password verification flow
+
+Rainbow tables
+
+PHASE 1 — Authentication & Authorization Foundations ✅ Completed
+1. Authentication vs Authorization
+
+Identity and principal
+
+Authentication responsibility
+
+Authorization responsibility
+
+Permissions vs policies
+
+Express middleware separation
+
+PHASE 2 — JWT (Token-Based Security) ✅ Completed
+2.1 JWT Fundamentals
+
+What a token represents
+
+Claims explained
+
+Header, payload, signature
+
+Base64 encoding vs encryption
+
+2.2 JWT Signing Algorithms
+
+HS256 (symmetric)
+
+RS256 (asymmetric)
+
+Internal signing and verification
+
+Why Auth0 recommends RS256
+
+2.3 Token Lifecycle
+
+Issuance
+
+Usage
+
+Expiration
+
+Invalidation (conceptual)
+
+2.4 JWT Validation Rules
+
+Signature verification
+
+Algorithm enforcement
+
+exp, iss, aud checks
+
+Validation order
+
+2.5 Token Types
+
+Access Token
+
+ID Token (high-level)
+
+Refresh Token (high-level)
+
+Why roles must not be mixed
+
+2.6 Secure Token Storage
+
+Browser threat model
+
+XSS and token theft
+
+CSRF basics
+
+HttpOnly cookies
+
+SameSite
+
+PHASE 3 — OAuth 2.0 ✅ Completed
+3.1 OAuth 2.0 Core Terminologies
+
+Resource Owner
+
+Client
+
+Authorization Server
+
+Resource Server
+
+Scope
+
+3.2 OAuth 2.0 Grant Types
+
+Authorization Code Grant
+
+Client Credentials Grant
+
+Refresh Token Grant
+
+Why Implicit Grant is deprecated
+
+3.3 Authorization Code Flow
+
+Redirect-based authorization
+
+Authorization code purpose
+
+Back-channel token exchange
+
+Token trust boundaries
+
+Attack scenarios
+
+Flow + sequence diagrams
+
+3.4 PKCE (Proof Key for Code Exchange)
+
+Why PKCE exists
+
+Code verifier and challenge
+
+How PKCE replaces client secrets
+
+Attack prevention
+
+Normal vs PKCE flow comparison
+
+PHASE 4 — OpenID Connect (OIDC) 🔄 Current Phase
+4.1 OpenID Connect Basics ✅
+
+OAuth vs OIDC
+
+Authentication vs authorization
+
+ID Token purpose
+
+Claims explained
+
+UserInfo endpoint
+
+4.2 ID Token Validation Rules ⏳ Next / partially covered conceptually
+
+Signature validation
+
+iss, aud, exp, iat
+
+nonce and replay protection
+
+Why clients (not APIs) validate ID tokens
+
+4.3 OIDC Login Flow & Login vs API Authorization ✅
+
+End-to-end OIDC login flow
+
+Where login actually completes
+
+Client responsibilities
+
+API responsibilities
+
+ID Token vs Access Token usage
+
+Express pseudo-code
+
+Colored sequence diagram
+
+PHASE 5 — Express.js Real-World Implementation 🚀 Coding Phase
+5.1 Express Authentication Architecture
+
+Middleware chaining
+
+Auth context propagation
+
+Error handling strategy
+
+5.2 JWT Authentication in Express
+
+Login endpoint
+
+Token issuance
+
+JWT verification middleware
+
+Role-based authorization
+
+5.3 OAuth / OIDC Login in Express
+
+Authorization Code + PKCE
+
+Using Auth0 / Google / Microsoft
+
+Handling callbacks
+
+Session vs token-based login
+
+PHASE 6 — Security Hardening (Senior Level)
+6.1 Common Auth Vulnerabilities
+
+JWT misconfiguration
+
+Algorithm confusion attacks
+
+IDOR / BOLA
+
+Token leakage
+
+6.2 Authorization Models
+
+RBAC
+
+ABAC
+
+Policy-based authorization
+
+Why roles alone fail
+
+6.3 Production Best Practices
+
+Token rotation
+
+Logout and revocation
+
+Auditing and logging
+
+Zero Trust principles
+
+PHASE 7 — Platform & Network Security
+7.1 TLS / HTTPS
+
+Certificates
+
+Public key usage in TLS
+
+Why OAuth requires HTTPS
+
+7.2 CSRF, CORS, Rate Limiting
+
+CSRF attacks and mitigations
+
+CORS misconceptions
+
+API abuse prevention
+
+7.3 Secrets & Key Management
+
+Environment variables
+
+Key rotation
+
+Why secrets must never be committed
