@@ -2991,7 +2991,270 @@ sequenceDiagram
 
 ```
 
-#check
+## 4.3 OIDC Login Flow & Login vs API Authorization
+
+### Understanding the core problem this topic solves
+
+In many application, developers treat "login" as a [vague](#c-vague) concept.
+
+Sometimes it means the user can see the UI
+
+Sometimes it means APIS allow requests
+
+Sometimes it means both.
+
+OpenID Connect exists specifically to **remove this ambiguity**.
+
+OIDC forces us to answer two separate questions very clearly.
+
+1. Who is the user who just authenticated ?
+2. What is this request allowed to do on the backend ?
+
+OIDC answers the first question only.
+
+OAuth answers the second question only.
+
+---
+
+### What "Login" Means in OIDC
+
+In OIDC, login means **verifying the user's identity and establishing a trusted authentication state inside the client application**
+
+Login is **not** :
+
+- Calling APIs
+- Checking permissions
+- Enforcing roles
+
+Login **end** when:
+
+- The Client has received an **ID Token**.
+- The Client has **fully validated** that ID Token
+- The Client know the user's stable identity(sub)
+
+At that point, authentication is complete.
+
+Nothing beyond this point is considered "login".
+
+---
+
+### What API Authorization means
+
+API authorization is the act of allowing or denying access to the backend resources.
+
+It is performed by:
+
+- Resource Server (APIs)
+- Using **Access Tokens**
+- Based on scopes, permissions, or policies
+
+APIs **do not**:
+
+- know about browser sessions
+- Care about **UI login** state
+- Validate ID Tokens
+
+This separation exists because APIs are designed to be **stateless, scalable, and independent of UI concerns**.
+
+---
+
+### Walking through a Real OIDC Login glow (E2E)
+
+#### Step 1: The Client Initiates Login (OIDC is Activated here)
+
+The login process begins when the client application decides it needs to authenticate a user.
+
+At this moment, the user is **not logged in,** no token exist, and no trust has been established.
+
+The Client redirects the user's browser to the Authorization Server with an OAuth authorization request.
+
+What turns this into OIDC is the presence of the <kbd>openid</kbd> scope.
+
+This scope tells the Authorization Server:
+
+    "This is not just authorization. I am asking you to authenticate the user."
+
+Conceptually, the Express backend's role here is minimal. It constructs a redirect and sends the browser away.
+
+```js
+app.get("/login", (req, res) => {
+    const authUrl = buildAuthorizeUrl({
+        response_type: "code",
+        scope: "openid profile email",
+        code_challenge,
+        code_challenge_method: "s256",
+    });
+
+    res.redirect(authUrl);
+});
+```
+
+At this point:
+
+- The client has not authenticated anyone
+- No token exist
+- The browser is simply following a redirect.
+
+#### Step 2: The User Authenticates at the Authorization Server
+
+The Authorization Server now takes full control.
+
+It authenticates the user using whatever methods it supports:
+
+- Passwords
+- MFA
+- Biometrics
+- SSO
+
+The Client is **completely excluded** from this step.
+
+This is critical.
+This client must **never** see user credentials.
+
+Once authentication succeeds, the Authorization Server prepares the result of that authentication.
+
+#### Step 3: An Authorization Code is Issued.
+
+After successful authentication (and consent if required), the Authorization Server redirects the browser back to the client
+
+What is returned is **not a token**, and it does **not identify the user**.
+
+It is short-lived authorization code.
+
+This code is only a **temporary handle** that allows the client to ask the Authorization Server for tokens securely.
+
+```http
+GET /callback?code=XYZ
+```
+
+If the client stops here, the user is **not logged in yet**
+
+#### Step 4: The Client Exchanges the Code for Tokens
+
+Now the client performs a **back-channel request** to the Authorization Server. (Client-Initiated Backchannel Authentication (CIBA))
+
+This request is server-to-server and invisible to the browser.
+
+In response, the Authorization Server issues **two different tokens,** each with a distinct purpose.
+
+- An **ID Token,** which represents authentication
+- An **Access Token,** which represents authorization
+
+```js
+const tokenResponse = await exchangeCode({
+    code,
+    code_verifier,
+});
+
+const { id_token, access_token } = tokenResponse;
+```
+
+This moment is where many systems go wrong.
+
+The client must now split responsibilities
+
+_The Login Lane: What the Client Does with the ID Token_
+
+The ID token is used **only by the client**.
+
+The Client validates the ID token using all rules from topic 4.2:
+
+- Signature
+- Issuer
+- Audience
+- Expiration
+- Nonce
+
+If validation fails, login fails.
+
+If validation succeeds, the client extract the <kbd>sub</kbd> claim and establishes a local session.
+
+```js
+const user = validateToken(id_token);
+
+req.session.userId = user.sub;
+```
+
+At this exact moment:
+
+- The user is logged in
+- Authentication is complete
+- No API authorization has occurred
+
+**Login ends here**.
+
+_The API Lane: What Happens with the Access Token_
+
+The Access Token has nothing to do with login state.
+
+It is stored securely and attached to API requests when needed.
+
+```http
+Authorization: Bearer Access_Token
+```
+
+The API Validates:
+
+- The token signature
+- The audience
+- The Scopes or permissions
+
+The API does not:
+
+- Know who is logged in the UI
+- Validates the Tokens
+- Care about sessions
+
+---
+
+### Sequence Diagram
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+  themeVariables:
+    fontFamily: "Verdana"
+    fontSize: "16px"
+    actorFontSize: "18px"
+    messageFontSize: "14px"
+    noteFontSize: "14px"
+    actorFontWeight: "bold"
+    actorTextColor: "#000"
+    signalTextColor: "#000"
+    labelTextColor: "#000"
+---
+
+sequenceDiagram
+    participant Client
+    participant AS as Authorization Server
+    participant User
+    participant API as Resource Server
+
+    rect rgb(180, 210, 245)
+        Client->>AS: Authorization request (scope=openid + PKCE)
+        AS->>User: Authenticate user
+        AS-->>Client: Authorization Code
+    end
+
+    rect rgb(255, 200, 120)
+        Client->>AS: Exchange code + code_verifier
+        AS-->>Client: ID Token + Access Token
+    end
+
+    rect rgb(140, 220, 200)
+        Client->>Client: Validate ID Token
+        Client->>Client: Create login session
+    end
+
+    rect rgb(160, 200, 240)
+        Client->>API: Request with Access Token
+        API->>API: Validate token & scopes
+        API-->>Client: Protected response
+    end
+
+```
 
 # Glossary
 
@@ -3002,3 +3265,7 @@ Delegated access is a security mechanism that allow an entity (the "delegate" or
 ## B. Cookies
 
 Cookies are small text files placed on a user's device by a website to remember information, such as login status, shopping cart items, or site preferences
+
+## C. Vague
+
+not clear or definite / not thinking or understanding correctly
