@@ -1,81 +1,60 @@
 ﻿# Authentication and Authorization
 
+---
+
 # Table of Contents
 
 ## [Phase 0 – Cryptography Foundations](#phase-0-cryptography-foundations)
 
-- **0.1 – Cryptography Terminology**
-    - [Core Definitions (Plaintext, Ciphertext, Key)](#01--cryptography-terminology)
-    - [Encryption vs. Decryption](#encryption)
-    - [Hashing vs. Salting](#hash)
-    - [Digital Signatures (Integrity & Authenticity)](#signature)
-    - [Node.js Primitive Examples (Hashing, AES Encryption)](#nodejs-primitive-examples)
-- **0.2 – Symmetric Cryptography**
-    - [Shared Secrets & Algorithms (AES)](#02--symmetric-cryptography)
-    - [Authentication Tags & GCM Mode](#authentication-tag-authtag--gcm)
-    - [The Sender/Receiver Verification Logic](#complete-picture)
-- **0.3 – Asymmetric Cryptography**
-    - [Public and Private Key Pairs](#03--asymmetric-cryptography)
-    - [Key Distribution & TLS (HTTPS) Usage](#why-its-used)
-    - [JWT RS256 vs. OAuth Trusts](#questions--real-world-usage)
-- **0.4 – Digital Signatures**
-    - [The Signing and Verification Flow](#high-level-flow)
-    - [Visual Logic Representation](#visual-representation)
-- **0.5 – Hashing & Password Security**
-    - [Verification Flows vs. Password Recovery](#hashing--password-terminologies)
-    - [Salting vs. Peppering](#how-salt-protects-you)
-    - [Slow Algorithms (bcrypt, argon2, scrypt)](#what-password-hashing-algorithms-do-differently)
+- [0.1 – Cryptography Terminology](#01--cryptography-terminology)
+- [0.2 – Symmetric Cryptography](#02--symmetric-cryptography)
+- [0.3 – Asymmetric Cryptography](#03--asymmetric-cryptography)
+- [0.4 – Digital Signatures](#04--digital-signatures)
+- [0.5 – Hashing & Password Security](#05--hashing--password-security)
 
-## [Phase 1 – Authentication and Authorization Foundations](#phase-1-authentication--authorization-foundations)
+## [Phase 1 – Authentication & Authorization Foundations](#phase-1-authentication--authorization-foundations)
 
-- **1.1 – Terminologies**
-    - [AuthN vs. AuthZ](#authentication-authn)
-    - [Identity vs. Principal vs. Policy](#identity-who)
-- **1.2 – Authorization in Express.js**
-    - [The "Actor" Object Structure](#12-authorization-in-expressjs)
-- **1.3 – Request Lifecycle**
-    - [HTTP Semantics (401 vs. 403)](#13-request-lifecycle)
+- [1.1 – Authentication & Authorization Terminologies](#11-authentication--authorization-terminologies)
+- [1.2 – Authorization in Express.js](#12-authorization-in-expressjs)
+- [1.3 – Request Lifecycle & HTTP Semantics](#13-request-lifecycle)
+- [1.4 – Code Example](#14-code-example)
+- [1.5 – Sequence Diagram (AuthN Flow)](#15-sequence-diagram-authn-flow)
 
 ## [Phase 2 – JWT (Token-Based Security)](#phase-2-jwt-token-based-security)
 
-- **2.1 – JWT Terminology**
-    - [Claims (sub, iss, aud, exp)](#21-jwt-terminology)
-- **2.2 – Overview & Self-Containment**
-    - [The Self-Contained Design](#22-what-is-a-json-web-token)
-- **2.3 – JWT Structure**
-    - [Header, Payload (Claims Types), and Signature](#23-jwt-structure)
-- **2.4 – Verification Flow**
-    - [Step-by-step Validation](#24-jwt-verification-flow)
-- **2.6 – HS256 vs. RS256**
-    - [Symmetric (Shared) vs. Asymmetric (Key Pair) Signing](#26-jwt---hs256-vs-rs256)
-- **2.9 – Token Lifecycle**
-    - [Issuance, Usage, Expiration, and Invalidation](#29-jwt---token-lifecycle)
-- **2.10 – Token Types**
-    - [Access Tokens vs. ID Tokens vs. Refresh Tokens](#210-jwt---token-types)
-- **2.11 – Secure Token Storage**
-    - [XSS & CSRF Risks](#211-jwt---secure-token-storage)
-    - [LocalStorage vs. HttpOnly Cookies](#storage-options-and-risks)
+- [2.1 – JWT Terminology](#21-jwt-terminology)
+- [2.2 – Overview & Self-Containment](#22-what-is-a-json-web-token)
+- [2.3 – JWT Structure (Header, Payload, Signature)](#23-jwt-structure)
+- [2.4 – JWT Verification Flow](#24-jwt-verification-flow)
+- [2.5 – JWT Responsibilities (What it is NOT)](#25-what-jwt-is-and-is-not-responsible-for)
+- [2.6 – JWT - HS256 vs. RS256](#26-jwt---hs256-vs-rs256)
+- [2.7 – HS256 Problems in Real Systems](#27-hs256-problems-in-real-systems)
+- [2.8 – RS256 Advantages](#28-rs257-advantages)
+- [2.9 – JWT - Token Lifecycle](#29-jwt---token-lifecycle)
+- [2.10 – JWT - Token Types (Access, ID, Refresh)](#210-jwt---token-types)
+- [2.11 – JWT - Secure Token Storage](#211-jwt---secure-token-storage)
 
 ## [Phase 3 – OAuth 2.0 (Authorization Framework)](#phase-3-oauth-20-authorization-framework)
 
-- **3.1 – Core Terminology**
-    - [Roles: Resource Owner, Client, Auth Server, Resource Server](#31-oauth-20--core-terminology)
-    - [Scopes & Least Privilege](#scope)
-- **3.2 – Grant Types**
-    - [Authorization Code Grant (The Gold Standard)](#the-main-oauth-20-grant-types)
-    - [Client Credentials & Refresh Token Grants](#client-credentials-grant)
-    - [Implicit Grant (Deprecated)](#implicit-grant-deprecated)
-- **3.3 – Authorization Code Flow**
-    - [Redirect-Based Security](#redirect-based-authorization)
-    - [Back-Channel Communication](#authorization-code-exchange)
-    - [Token Trust Boundaries](#token-trust-boundaries-critical-concept)
-- **3.4 – Attack Scenarios**
-    - [Interception, Leakage, and Replay Attacks](#34-oauth-20--attack-scenarios)
+- [3.1 – OAuth 2.0 – Core Terminology](#31-oauth-20--core-terminology)
+- [3.2 – OAuth 2.0 – Grant Types](#32-oauth-20--grant-types)
+- [3.3 – OAuth 2.0 – Authorization Code Flow](#33-oauth-20--authorization-code-flow)
+- [3.4 – OAuth 2.0 – Attack Scenarios](#34-oauth-20--attack-scenarios)
+- [3.5 – Sequence Diagram (OAuth 2.0 Auth Code flow)](#35-sequence-diagram-oauth-20-auth-code-flow)
+- [3.6 – PKCE (Proof Key for Code Exchange)](#36-pkce-proof-key-for-code-exchange)
+- [3.7 – PKCE vs. Standard Code Flow Comparison](#37-difference-between-authorization-code-with-and-without-pkce)
+
+## [Phase 4 – OpenID Connect (OIDC)](#phase-4---openid-connect-oidc)
+
+- [4.1 – Basics (The Identity Layer)](#41-basics)
+- [4.2 – ID Token Validation Rules](#42-id-token-validation-rules)
+- [4.3 – OIDC Login Flow vs. API Authorization](#43-oidc-login-flow--login-vs-api-authorization)
 
 ## [Glossary](#glossary)
 
-- [Delegated Access](#a-delegated-access)
-- [Cookies & Security Flags](#b-cookies)
+- [A. Delegated Access](#a-delegated-access)
+- [B. Cookies](#b-cookies)
+- [C. Vague](#c-vague)
 
 ---
 
@@ -2489,7 +2468,7 @@ The Authorization Server validates that the code verifier matches the previously
 
 Modern OAuth guidance recommends **using PKCE in all cases**, even for confidential clients, because it adds an additional security layer with no practical downside.
 
-# PHASE 4 — OpenID Connect (OIDC)
+# PHASE 4 - OpenID Connect (OIDC)
 
 ## 4.1 Basics
 
