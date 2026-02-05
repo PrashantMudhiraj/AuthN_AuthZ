@@ -44,11 +44,15 @@
 - [3.6 – PKCE (Proof Key for Code Exchange)](#36-pkce-proof-key-for-code-exchange)
 - [3.7 – PKCE vs. Standard Code Flow Comparison](#37-difference-between-authorization-code-with-and-without-pkce)
 
-## [Phase 4 – OpenID Connect (OIDC)](#phase-4---openid-connect-oidc)
+## [Phase 4 – OpenID Connect (OIDC)](#phase-4-openid-connect-oidc)
 
 - [4.1 – Basics (The Identity Layer)](#41-basics)
 - [4.2 – ID Token Validation Rules](#42-id-token-validation-rules)
 - [4.3 – OIDC Login Flow vs. API Authorization](#43-oidc-login-flow--login-vs-api-authorization)
+
+## [Phase 5 – Express.js Real-World Implementation](#phase-5-expressjs-real-world-implementation)
+
+- [5.1 Express Authentication Architecture](#51-express-authentication-architecture)
 
 ## [Glossary](#glossary)
 
@@ -2468,7 +2472,7 @@ The Authorization Server validates that the code verifier matches the previously
 
 Modern OAuth guidance recommends **using PKCE in all cases**, even for confidential clients, because it adds an additional security layer with no practical downside.
 
-# PHASE 4 - OpenID Connect (OIDC)
+# PHASE 4 OpenID Connect (OIDC)
 
 ## 4.1 Basics
 
@@ -3234,6 +3238,194 @@ sequenceDiagram
     end
 
 ```
+
+# Phase 5 Express.js Real world Implementation
+
+## 5.1 Express Authentication Architecture
+
+_What this topic is (and is not)_
+
+This topic is about **architecture,** not login yet.
+
+Here we define:
+
+- How requests flow through Express
+- Where authentication logic lives
+- Where authorization logic lives
+- How identity is attached to a request
+- Where OAuth/OIDC will later plug in
+- Where a BFF logically sits
+
+_**Express Request LifeCycle**_
+
+Every incoming request flows through Express like this:
+
+1. Request enters the app
+2. Global middleware runs
+3. Authentication middlewares runs
+4. Authorization middleware runs
+5. Route handler executes
+6. Error middleware handles failures
+
+Our job is to place **authentication and authorization at the correct points**
+
+_Step 1 - Minimal Express App_
+
+```js
+//app.js
+import express from "express";
+
+const app = express();
+
+//Prase JSON bodies
+app.use(express.json());
+
+//health check(public)
+app.get("/health",(req, res) => {
+    res.json({status : "ok"})
+});
+
+export default app;'
+
+```
+
+_Step 2 - Introducing the Auth Context Concept_
+
+In secure backends, authentication does not immediately allow access.
+
+Instead, authentication **adds identity information** to the request.
+
+This is called an **auth context**.
+
+The auth context answers:
+
+- Is this request authenticated ?
+- Who is the user ?
+- What identity is associated with this request ?
+
+In Express, this is usually attached to:
+
+    req.user
+
+But nothing sets <kbd>req.user</kbd> by default - we must design it.
+
+_Step 3 - Authentication Middleware_
+
+Now we create a middleware whose only job is:
+
+    "If credentials are present and valid, attach identity to the request."
+
+Not:
+
+- Not authorization
+- Not permissions
+- Not business logic
+
+```js
+//middleware/authenticate.js
+
+export function authenticate(req, res, next) {
+    //For now, we assume no authentication
+    //Later this will verify JWT / session / OIDC
+
+    req.user = null; //explicit, predictable state
+    next();
+}
+```
+
+We are defining a **Contract** :
+
+- Every request will have <kbd>req.user</kbd>
+- Routes can rely on this contract
+- Authentication logic can evolve without touching routes
+
+_Step 4 - Wiring Authentication Middleware Globally_
+
+Now we wire it into the app.
+
+```js
+//app.js
+
+import express from "express";
+import { authenticate } from "./middleware/authenticate.js";
+
+const app = express();
+
+app.use(express.json());
+
+app.use(authenticate);
+
+app.get("/health", (req, res) => {
+    res.json({
+        status: "OK",
+        authenticatedUser: req.user,
+    });
+});
+
+export default app;
+```
+
+Now:
+
+- Every request goes through authentication.
+- No route needs to care how authentication works
+- Identity propagation is centralized
+
+This is **industry-standard practice**
+
+_Step 5 - Authorization Middleware_
+
+Authentication answers
+
+    who the user is
+
+Authorization
+
+    Is this user allowed to do this?
+
+These must be separate.
+
+```js
+//middleware/requireAuth.js
+export function requireAuth(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({
+            error: "Authentication required",
+        });
+    }
+
+    next();
+}
+```
+
+This middleware does not authenticate
+
+It only check the result of the authentication.
+
+_Step 5 - Protected Routes_
+
+Now we apply authorization only where needed.
+
+```js
+//app.js
+
+import { requireAuth } from "./middleware/requireAuth.js";
+
+app.get("/profile", requireAuth, (req, res) => {
+    res.json({
+        message: " This is a protected route",
+        user: req.user,
+    });
+});
+```
+
+This is powerful because:
+
+- Public routes stay public
+- Protected routes are explicit
+- Security logic is reusable
+
+---
 
 # Glossary
 
