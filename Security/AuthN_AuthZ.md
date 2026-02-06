@@ -53,6 +53,7 @@
 ## [Phase 5 – Express.js Real-World Implementation](#phase-5-expressjs-real-world-implementation)
 
 - [5.1 Express Authentication Architecture](#51-express-authentication-architecture)
+- [5.2 JWT Authentication in Express](#52-jwt-authentication-in-express)
 
 ## [Glossary](#glossary)
 
@@ -3424,6 +3425,366 @@ This is powerful because:
 - Public routes stay public
 - Protected routes are explicit
 - Security logic is reusable
+
+---
+
+## 5.2 JWT Authentication in Express
+
+This topic is intentionally **OIDC-agnostic**.
+
+Here, JWTs are used to **access tokens issued by our own backend,** not by an external IdP.
+
+_Step 1 - Install Required npm packages_
+
+These are **Industry-standard** and intentionally minimal
+
+```bash
+npm install jsonwebtoken bcrypt
+```
+
+_Step 2 - A Minimal User Store_
+
+In Production, this would be a database.
+
+For clarity, we'll use an in-memory store
+
+```js
+//data/users.js
+
+import bcrypt from "bcrypt";
+
+const users = [
+    {
+        id: "u1",
+        email: "user1@example.com",
+        passwordHash: bcrypt.hashSync("password123", 10),
+        role: "user",
+    },
+];
+
+export function findUserByEmail(email) {
+    return users.find((u) => u.email === email);
+}
+```
+
+_Step 3 - JWT Utility function_
+
+We now define how tokens are issued and verified.
+
+```js
+//utility/jwt.js
+
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = "super-secret-key";
+const JWT_EXPIRY = "5m";
+
+export function issueAccessToken(user) {
+    return jwt.sign(
+        {
+            sub: user.id,
+            email: user.email,
+            role: user.role,
+        },
+        JWT_SECRET,
+        {
+            expiresIn: JWT_EXPIRY,
+        },
+    );
+}
+
+export function verifyAccessToken(token) {
+    return jwt.verify(token, JWT_SECRET);
+}
+```
+
+Notice something important:
+
+- We are issuing **access tokens**
+- The Payload contains **identity + authorization hits**
+- The token is **time-limited**
+
+_Step 4 - Login Endpoint_
+
+Now we implement a real login endpoint
+
+```js
+//routes/auth.js
+
+import express from "express";
+import bcrypt from "bcrypt";
+import { findUserByEmail } from "../data/users.js";
+import { issueAccessToken } from "../utils/jwt.js";
+
+const router = express.Router();
+
+router.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+
+    const user = findUserByEmail(email);
+
+    if (!user) {
+        return res.status(401).json({ error: "Invalid Credentials" });
+    }
+
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) {
+        return res.status(401).json({ error: "Invalid Credentials" });
+    }
+
+    const accessToken = issueAccessToken(user);
+
+    res.json({ accessToken });
+});
+
+export default router;
+```
+
+What just happened?
+
+- Credentials were verified
+- A JWT was issued
+- No Session was created
+- Authentication is now **stateless**
+
+This is **classic JWT-bases authentication**
+
+_Step 4 - JWT Verification inside <kbd>authenticate()</kbd> Middleware_
+
+```js
+//middleware/authenticate.js
+
+import { verifyAccessToken } from "../utility/jwt.js";
+
+export function authenticate(req, res, next) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        req.user = null;
+        next();
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    try {
+        const decoded = verifyAccessToken(token);
+
+        req.user = {
+            id: decoded.sub,
+            email: decoded.email,
+            role: decoded.role,
+        };
+    } catch (err) {
+        req.user = null;
+    }
+
+    next();
+}
+```
+
+This is the **heart of JWT authentication**
+
+Key points:
+
+- Token extraction is centralized
+- Verification happens once per request
+- Identity is attached to <kbd>req.user</kbd>
+- Routes remain clean and unaware of JWTs
+
+_Step 6 - Protected Route_
+
+Now let's use the existing authorization middleware
+
+```js
+//routes/profile.js
+
+import express from express;
+import { requireAuth } from "./middleware/requireAuth.js";
+
+const router = express.Router();
+
+router.get("/profile", requireAuth, (req, res) => {
+    res.json({
+        message: " This is a protected route",
+        user: req.user,
+    });
+});
+
+export default router;
+```
+
+At runtime:
+
+1. Request enters Express
+2. <kbd>authenticate()</kbd>
+3. JWT is verified
+4. <kbd>req.user</kbd> is populated
+5. <kbd>requireAuth()</kbd> enforces access
+6. Routes execute
+
+_Complete flow_
+
+<details>
+    <summary>"click to expand"</summary>
+
+- Login is responsible for **verifying credentials and issuing a token**
+- Authentication middleware is responsible for **verifying tokens and attaching identity**
+
+- Authorization middleware is responsible for **allowing or denying access**
+
+- Routes remain clean and unaware of token mechanics
+
+### 1️⃣ `/login` flow
+
+Your understanding here is correct.
+
+When `/login` is called, the backend:
+
+- Extracts `email` and `password` from the request body
+- Fetches the stored user record using the email
+- Compares the provided password with the stored `passwordHash`
+- Issues a JWT **only if verification succeeds**
+
+One important refinement:
+
+> `/login` is the **only place** where passwords are handled.
+> After this point, passwords never appear again.
+
+This is correct security behavior.
+
+---
+
+### 2️⃣ JWT issuance (`issueAccessToken`)
+
+Your description is also correct.
+
+The JWT utility:
+
+- Signs a token using a secret (or private key)
+- Embeds identity information (`sub`, role, etc.)
+- Sets an expiration
+- Returns a string token
+
+One mental note to lock in:
+
+> The token itself **is not authentication**.
+> Authentication happens only when the token is **verified later**.
+
+---
+
+### 3️⃣ Token verification flow (authenticate middleware)
+
+This is where your understanding is strong.
+
+For every request:
+
+- The middleware checks `req.headers.authorization`
+- Verifies that it uses the `Bearer` scheme
+- Extracts the token
+- Verifies the token’s signature and validity
+- Attaches the decoded identity to `req.user`
+
+This is exactly how **real Express backends work**.
+
+Important clarification:
+
+> The token is not “decoded” for trust.
+> It is **verified**, and decoding happens as a consequence of verification.
+
+This distinction matters in interviews and real code.
+
+---
+
+### 4️⃣ `/profile` route + `requireAuth`
+
+Your flow here is also correct.
+
+The `/profile` route:
+
+- Does not know anything about JWTs
+- Does not parse headers
+- Does not verify tokens
+
+It simply trusts the contract:
+
+> “If `req.user` exists, authentication succeeded.”
+
+`requireAuth` enforces that contract.
+
+This is **clean architecture** and **industry best practice**.
+
+---
+
+## One small but important structural refinement
+
+I’ll rewrite your model in a **slightly more precise way**, keeping your intent intact.
+
+### 🔹 Request flow (runtime view)
+
+1. Request enters Express
+2. `authenticate` middleware runs
+    - Looks for `Authorization` header
+    - Verifies JWT if present
+    - Sets `req.user` or `null`
+
+3. Route-level middleware (`requireAuth`) runs
+    - Allows or blocks access
+
+4. Route handler executes
+
+---
+
+### 🔹 Responsibility separation (design view)
+
+- `/login`
+  Responsible for **credential verification and token issuance**
+
+- `authenticate`
+  Responsible for **token verification and identity propagation**
+
+- `requireAuth`
+  Responsible for **enforcing authentication**
+
+- Routes (`/profile`)
+  Responsible for **business logic only**
+
+This separation is exactly what you want.
+
+- app
+    - /login
+        - extract email and password
+        - extract email with passwordHash from db
+        - verify password
+        - issue token
+    - Verify token
+        - req.headers.authorization
+        - check bearer token
+        - decode token
+        - add user context
+    - /profile route
+        - add requireAuth middleware
+        - If user present process next
+        - else error
+
+- jwt
+    - issueAccessToken
+        - sign token with secret key
+        - return token
+    - verifyAccessToken
+        - verify token
+
+- authenticate
+    - check authHeaders
+    - extract token
+    - verify token
+    - add user context
+
+- requireAuth
+    - check user context
+    - if present fine
+    - else error
+
+</details>
 
 ---
 
