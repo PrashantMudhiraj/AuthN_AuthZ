@@ -7,6 +7,12 @@ const users = [
         role: "user",
         passwordHash: bcrypt.hashSync("password123", 10),
     },
+    {
+        id: "u2",
+        email: "user2@example.com",
+        role: "admin",
+        passwordHash: bcrypt.hashSync("password123", 10),
+    },
 ];
 
 export function findUserByEmail(email) {

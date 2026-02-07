@@ -54,6 +54,7 @@
 
 - [5.1 Express Authentication Architecture](#51-express-authentication-architecture)
 - [5.2 JWT Authentication in Express](#52-jwt-authentication-in-express)
+- [5.3 OAuth / OIDC Login in Express](#53-oauth--oidc-login-in-express)
 
 ## [Glossary](#glossary)
 
@@ -2214,7 +2215,7 @@ sequenceDiagram
 
 PKCE stands for **Proof Key for Code exchange**
 
-Is is a mechanism that cryptographically binds the authorization code to the client that initiated the login request.
+It is a mechanism that cryptographically binds the authorization code to the client that initiated the login request.
 
 **_Public Client_**
 
@@ -3715,7 +3716,7 @@ This is **clean architecture** and **industry best practice**.
 
 ---
 
-## One small but important structural refinement
+### One small but important structural refinement
 
 I’ll rewrite your model in a **slightly more precise way**, keeping your intent intact.
 
@@ -3786,7 +3787,151 @@ This separation is exactly what you want.
 
 </details>
 
+## 5.3 OAuth / OIDC Login in Express
+
+### Terminologies
+
+_**OAuth 2.0**_
+
+OAuth 2.0 is an **authorization** framework that allow one system to obtain limited access to another system on behalf of a user, without sharing the user's password. It defines role, flows amd rules, but is does not define how login identity works.
+
+_**OpenID Connect (OIDC)**_
+
+OIDC is an **identity layer built on top of OAuth 2.0**. It adds standardized identity concept such as _ID Token_ and _UserInfo_, making OAuth suitable for login.
+
+_**Authorization Code Flow**_
+
+This is an OAuth 2.0 flow where the browser receive a **temporary authorization code**, not tokens. The backend system later exchanges this code for tokens using a secure back-channel.
+
+_**PKCE (Proof Key for Code Exchange)**_
+
+PKCE is a security extension that binds the authorization request to the token exchange using a cryptographic challenge, preventing authorization code interception attacks.
+
+_**BFF (Backend For Frontend)**_
+
+A BFF is a backend dedicated to a specific frontend. In authentication, it means the **browser never handles tokens;** the backend manages login state securely.
+
+_**Authorization Server(Auth Server/IdP)**_
+
+The system responsible for authentication users and issuing tokens. Examples include AuthO, Google, and Microsoft Entra ID.
+
+_**Client**_
+
+The application requesting authentication. In our case, the **Express BFF** is the OAuth client.
+
 ---
+
+### Authorization Code Flow + PKCE (BFF Architecture)
+
+<h3>Concept</h3>
+
+The Authorization Code Flow with PKCE is designed so that **tokens are never exposed to the browser**.
+
+The browser only performs redirect. All sensitive operations - Code exchange, token validation and session creation - happen on the backend.
+
+In a **BFF architecture**, this flow enables secure login while completely avoiding token storage in the browser. The backend converts OAuth/OIDC tokens into a **server-side session.**
+
+<h3>Why this flow exists</h3>
+
+Early OAuth flows returned tokens directly to the browser. This caused serious security issues.
+
+- Token Could be stolen via XSS
+- Token leaked through browser history or logs
+- Mobile and SPA clients were vulnerable to interception attacks
+
+The Authorization Code Flow solves this by introducing a **two-step process**.
+
+1. Browser gets a short-lived **authorization code**
+2. Backend exchanges the code for tokens securely
+
+PKCE exists becaus attackers learned to **steal authorization codes** during redirects
+
+PKCE cryptographically binds the code to the original request so stolen code become useless.
+
+<h3>Internal Working</h3>
+
+**High level mechanics**
+
+1. The browser is redirected to the Authorization Server <kbd>/authorize</kbd> endpoint.
+2. A **code challenge** (derived from a random secret) is sent.
+3. The user authenticates at the Authorization Server.
+4. The Authorization Server redirects back with an **authorization code**.
+5. The backend sends:
+    1. the authorization code
+    2. the original **code verifier**
+6. The Authorization Server validates the PKCE binding
+7. Tokens are issued **only to the backend**
+8. The backend creates a session for the browser.
+
+<h3>Real, Runnable Express Code (openid-client, BFF style)</h3>
+
+We use <kbd>openid-client</kbd> because it is **spec-accurate** and used in production BFF systems
+
+<h4>Why <kbd>openid-client</kbd> exists</h4>
+
+It implements OAuth 2.0 and OIDC **exactly as defined by the specs**, including discovery, PKCE, token validation and JWK handling. Companies choose it when correctness and security matter more than abstraction.
+
+```bash
+npm install express express-session openid-client
+```
+
+- **Code** : [authCodeFlow.js](../Implementation/AuthorizationCodeFlow/authFlow.js)
+
+    ##check
+
+<h3>Authorization Code Flow</h3>
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant BFF as Express BFF (Server)
+    participant IdP as Identity Provider (Google/Auth0)
+
+    %% PHASE 1: PREPARATION & INITIATION
+    rect rgb(240, 230, 250)
+    Note over BFF: Step 1: Discovery
+    BFF->>IdP: GET /.well-known/openid-configuration
+    IdP-->>BFF: Return Metadata (Endpoints, Keys)
+
+    Note over Browser, BFF: Step 2: Initiation
+    Browser->>BFF: GET /login
+    Note right of BFF: Generate PKCE Verifier & Challenge
+    Note right of BFF: Store Verifier in Session
+    BFF-->>Browser: 302 Redirect (Auth URL + Challenge)
+    end
+
+    %% PHASE 2: USER INTERACTION
+    rect rgb(220, 240, 255)
+    Note over Browser, IdP: Step 3: Identity Verification
+    Browser->>IdP: GET /authorize?challenge=...
+    IdP->>Browser: Show Login Page
+    Browser->>IdP: Submit Credentials
+    IdP-->>Browser: 302 Redirect to /callback?code=XYZ
+    end
+
+    %% PHASE 3: CALLBACK & TOKEN EXCHANGE
+    rect rgb(255, 245, 220)
+    Note over Browser, BFF: Step 4: Callback
+    Browser->>BFF: GET /callback?code=XYZ
+
+    Note over BFF, IdP: Step 5: Back-channel Exchange
+    BFF->>IdP: POST /token (Code XYZ + PKCE Verifier)
+    Note left of IdP: Verify Code & PKCE Match
+    IdP-->>BFF: Return ID Token & Access Token
+    end
+
+    %% PHASE 4: SESSION & PROFILE
+    rect rgb(225, 245, 225)
+    Note over BFF: Step 6: Session Creation
+    BFF->>BFF: Validate ID Token & Extract Profile
+    BFF->>BFF: Create Session (Set-Cookie)
+    BFF-->>Browser: Redirect to /me (with Session Cookie)
+
+    Note over Browser, BFF: Step 7: Accessing Data
+    Browser->>BFF: GET /me (Cookie Included)
+    BFF-->>Browser: JSON User Profile
+    end
+```
 
 # Glossary
 
