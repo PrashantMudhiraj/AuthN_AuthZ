@@ -3888,7 +3888,7 @@ sequenceDiagram
     participant IdP as Identity Provider (Google/Auth0)
 
     %% PHASE 1: PREPARATION & INITIATION
-    rect rgb(240, 230, 250)
+    rect rgb(165, 114, 216)
     Note over BFF: Step 1: Discovery
     BFF->>IdP: GET /.well-known/openid-configuration
     IdP-->>BFF: Return Metadata (Endpoints, Keys)
@@ -3901,7 +3901,7 @@ sequenceDiagram
     end
 
     %% PHASE 2: USER INTERACTION
-    rect rgb(220, 240, 255)
+    rect rgb(115, 143, 165)
     Note over Browser, IdP: Step 3: Identity Verification
     Browser->>IdP: GET /authorize?challenge=...
     IdP->>Browser: Show Login Page
@@ -3910,7 +3910,7 @@ sequenceDiagram
     end
 
     %% PHASE 3: CALLBACK & TOKEN EXCHANGE
-    rect rgb(255, 245, 220)
+    rect rgb(175, 151, 90)
     Note over Browser, BFF: Step 4: Callback
     Browser->>BFF: GET /callback?code=XYZ
 
@@ -3921,7 +3921,7 @@ sequenceDiagram
     end
 
     %% PHASE 4: SESSION & PROFILE
-    rect rgb(225, 245, 225)
+    rect rgb(100, 172, 100)
     Note over BFF: Step 6: Session Creation
     BFF->>BFF: Validate ID Token & Extract Profile
     BFF->>BFF: Create Session (Set-Cookie)
