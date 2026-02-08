@@ -1,0 +1,68 @@
+redirect url :  URL {
+  href: 'https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&scope=openid+profile+email&code_challenge=edHcVbmtFknShl3TZKKhZe1Yy7p6Xudba-sYG7-YiuM&code_challenge_method=S256&client_id=587882459808-a63qe5gupgdi9stapj9.apps.googleusercontent.com&response_type=code',
+  origin: 'https://accounts.google.com',
+  protocol: 'https:',
+  username: '',
+  password: '',
+  host: 'accounts.google.com',
+  hostname: 'accounts.google.com',
+  port: '',
+  pathname: '/o/oauth2/v2/auth',
+  search: '?redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&scope=openid+profile+email&code_challenge=edHcVbmtFknShl3TZKKhZe1Yy7p6Xudba-sYG7-YiuM&code_challenge_method=S256&client_id=587882459808-a63qe5gupgdi9stapj9.apps.googleusercontent.com&response_type=code',
+  searchParams: URLSearchParams {
+    'redirect_uri' => 'http://localhost:3000/auth/callback',
+    'scope' => 'openid profile email',
+    'code_challenge' => 'edHcVbmtFknShl3TZKKhZe1Yy7p6Xudba-sYG7-YiuM',
+    'code_challenge_method' => 'S256',
+    'client_id' => '587882459808-a63qe5gupgdi9stapj9.apps.googleusercontent.com',
+    'response_type' => 'code' },
+  hash: ''
+}
+current Url :  URL {
+  href: 'http://localhost:3000/auth/callback?code=4%2F0ASc3gC2L5Y7z1XtUH7P9iZ1G19Jue5w9fUavftQowTvopaoQqEWyR89-2q25DnPjrfLR1g&scope=email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&authuser=0&prompt=none',
+  origin: 'http://localhost:3000',
+  protocol: 'http:',
+  username: '',
+  password: '',
+  host: 'localhost:3000',
+  hostname: 'localhost',
+  port: '3000',
+  pathname: '/auth/callback',
+  search: '?code=4%2F0ASc3gC2L5Y7z1XtUH7P9iZ1G19Jue5w9fUavftQowTvopaoQqEWyR89-2q25DnPjrfLR1g&scope=email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&authuser=0&prompt=none',      
+  searchParams: URLSearchParams {
+    'code' => '4/0ASc3gC2L5Y7z1XtUH7P9iZ1G19Jue5w9fUavftQowTvopaoQqEWyR89-2q25DnPjrfLR1g',
+    'scope' => 'email profile https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/userinfo.email',
+    'authuser' => '0',
+    'prompt' => 'none' },
+  hash: ''
+}
+token set :  {
+  access_token: 'ya29.A0AUMWg_ItsC_ek3AnL1sKAomJMGYy9hB3tJbz-P1Y8v0oTznsVV1N3Ef_iy6N5o1NcjgoNGei3sXJ4IV5FiY06IzhGr2SS8oAhZrHdPlLS6Sc9XnmCPRkjXfHJcNrqTu0jfaPrq8UbUnaA0z2xTA9BrFObRtGh7baANIPwB8PgT_VOJp3knOUsHkfvNUYtGXgYlVW596IfJX354XxaheyQTMWHtGEC4AMt8lp3vjZ9auUUg-jn0PtdsfCbUSdDQ7P0kgNrex_sxYlL8zF5yc5GcIyAfUJZKAaCgYKAR4SARASFQHGX2MiN0fnxRbRSyOXrCE5vO_qIw0294',
+  expires_in: 3598,
+  scope: 'https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/userinfo.email',
+  token_type: 'bearer',
+  id_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6ImMyN2JhNDBiMDk1MjlhZDRmMTY4MjJjZTgzMTY3YzFiYzM5MTAxMjIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI1ODc4ODI0NTk4MDgtYTYzcWU1Z3VwZ2RpOXN0YXBqOTJoOGFpdDN2dTFsMDguYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI1ODc4ODI0NTk4MDgtYTYzcWU1Z3VwZ2RpOXN0YXBqOTJoOGFpdDN2dTFsMDguYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDc0MjUxMzMxMzk3NTc5MTIxMTkiLCJlbWFpbCI6InByYXNoYW50Y2hldnVsYTI1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhdF9oYXNoIjoicEVhMUt3UTRDdnpHNEVTZk41U1FuUSIsIm5hbWUiOiJQcmFzaGFudCBDaGV2dWxhIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0k5MVJuTDhZeUFLZmFGZHdEZzRPUVQ3OEFZSGtSWHhTVGdlX2QxajR0anhPcnM1UT1zOTYtYyIsImdpdmVuX25hbWUiOiJQcmFzaGFudCIsImZhbWlseV9uYW1lIjoiQ2hldnVsYSIsImlhdCI6MTc3MDUyNDQ4NSwiZXhwIjoxNzcwNTI4MDg1fQ.m5YDO9dBl-wBMyeYaV9_JOXvYhd1LyumbllWnYk3j_RSLZNKviSnQHTUPJ0HgL7N0rUKGinKyKVztY2da-7TKmH_aUGh9OpP2NSq7oYleGa0iPE626WOE635UHOt-O6efBlSae8pwZMmbITNVWMM8xrcZBBzSRico7Kz4hE4hNJoxVqU4FNSSJnkkuuC-hlMrFCAfSnOpwbnqeKqusIranrpH2fjeAqCeChlZFxoRidOEsX5MUQrFOsK-T9ZLhNd37kIjLC220iqNEQ18efxn5-pniRJ-XakJUDyklW6MzCC2EdmsB4ta92uS_gytTwOAq_bCP9STX0JHneGOWguNw'
+}
+
+
+claims:  {
+  iss: 'https://accounts.google.com',
+  azp: '587882459808-a63qe5gupgdi9stapj9.apps.googleusercontent.com',
+  aud: '587882459808-a63qe5gupgdi9stapj9.apps.googleusercontent.com',
+  sub: '107425133139757912119',
+  email: 'prashantchevula25@gmail.com',
+  email_verified: true,
+  at_hash: 'iIwYbok5JvemR8PrJBf9DQ',
+  name: 'Prashant Chevula',
+  picture: 'https://lh3.googleusercontent.com/a/ACg8ocI91RnL8YyAKfaFdwDg4OQT78AYHkRXxSTge_d1j4tjxOrs5Q=s96-c',
+  given_name: 'Prashant',
+  family_name: 'Chevula',
+  iat: 1770525544,
+  exp: 1770529144
+}
+
+public key: {
+  "e": "AQAB",
+  "kty": "RSA",
+  "n": "u81qxSoubYoVt-J3VaJXxgsLQmyAXa9pnkxygDA59Z4WNhsfPfbXHlsAta3a-eikfRgswP-kzIhYoASDjH09AgpsnCVZXdjRp3VcZpQ7cm0KAmYniknOB3C56t2PuazYhmHjqwjYvuYbfP1lCzJRLCwsmM5vwJZTWiO_kDqTnPh7z0guZgrFe5xw2syKWxoi4TRXmCwffo-FsukYU4nNV19wDCccI6_hI2OWPWqG77tLV1RJnr_4xZPQDzk33qMOzCrIi0hlsk0ONs6CkOQ9YHLW8QXVabjTm6ojUp4cRRhVXUr_9FmrXJrc2Ws2sizhSqjrPzLFZBtKvZqueBmEYQ"
+}

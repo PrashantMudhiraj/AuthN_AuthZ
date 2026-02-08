@@ -25,6 +25,10 @@ app.use(
    OIDC CONFIGURATION (v6)
 ================================ */
 // In v6, discovery returns a configuration object used in helper functions
+
+// --- STEP 1: DISCOVERY ---
+// This one line performs the HTTP call to /.well-known/openid-configuration
+// It also fetches the JWKS (Public Keys) automatically.
 const serverConfig = await oidc.discovery(
     new URL("https://accounts.google.com/.well-known/openid-configuration"),
     client_id,
@@ -50,6 +54,8 @@ app.get("/login", async (req, res) => {
 
     const redirectTo = oidc.buildAuthorizationUrl(serverConfig, parameters);
 
+    // console.log("redirect url : ", redirectTo);
+
     req.session.save(() => {
         res.redirect(redirectTo.href);
     });
@@ -64,18 +70,33 @@ app.get("/auth/callback", async (req, res, next) => {
             req.protocol + "://" + req.get("host") + req.originalUrl,
         );
 
+        // console.log("current Url : ", currentUrl);
+
+        // --- STEP 2: AUTOMATIC VALIDATION ---
+        // authorizationCodeGrant performs the following automatically:
+        // 1. Validates the ID Token Signature against Google's Public Keys.
+        // 2. Checks that 'iss' is exactly 'https://accounts.google.com'.
+        // 3. Checks that 'aud' is your CLIENT_ID.
+        // 4. Checks that the token has not expired.
         const tokenSet = await oidc.authorizationCodeGrant(
             serverConfig,
             currentUrl,
             {
                 pkceCodeVerifier: req.session.code_verifier,
-                expectedRedirectUri: `${BASE_URL}/auth/callback`,
+                // expectedRedirectUri: `${BASE_URL}/auth/callback`,
             },
         );
 
+        // console.log("token set : ", tokenSet);
+
         // Get Claims (User Info)
         const claims = tokenSet.claims();
-        req.session.user = claims;
+        console.log("claims: ", claims);
+        req.session.user = {
+            id: claims.sub,
+            email: claims.email,
+            name: claims.name,
+        };
         delete req.session.code_verifier;
 
         req.session.save(() => {
