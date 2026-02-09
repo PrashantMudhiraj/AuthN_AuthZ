@@ -56,6 +56,10 @@
 - [5.2 JWT Authentication in Express](#52-jwt-authentication-in-express)
 - [5.3 OAuth / OIDC Login in Express](#53-oauth--oidc-login-in-express)
 
+## [PHASE 6 — Security Hardening](#phase-6-security-hardening)
+
+- [6.1 JWT Misconfigurations](#61-jwt-misconfigurations)
+
 ## [Glossary](#glossary)
 
 - [A. Delegated Access](#a-delegated-access)
@@ -3901,7 +3905,7 @@ The Authorization Code Flow solves this by introducing a **two-step process**.
 1. Browser gets a short-lived **authorization code**
 2. Backend exchanges the code for tokens securely
 
-PKCE exists becaus attackers learned to **steal authorization codes** during redirects
+PKCE exists because attackers learned to **steal authorization codes** during redirects
 
 PKCE cryptographically binds the code to the original request so stolen code become useless.
 
@@ -4003,7 +4007,7 @@ sequenceDiagram
 
 ---
 
-### openid-client
+### openid-client (npm library)
 
 _<h3>Concept: Trust but Verify</h3>_
 
@@ -4173,6 +4177,110 @@ These nuances live in your **Configuration/Environment Layer**. A well-architect
 
 ---
 
+# Phase 6 Security Hardening
+
+## 6.1 JWT Misconfigurations
+
+### Terminologies
+
+_**Header Manipulation**_
+
+An attack where a user modifies the first part of a JWT (the JSON header) to change how the server process the rest of the token.
+
+_**Signature Stripping**_
+
+An attack where the <kbd>alg</kbd>(algorithm) header is changed to <kbd>none</kbd> , telling the server that the token no longer requires a cryptographic signature to be valid.
+
+_**Algorithm Confusion (key confusion)**_
+
+A sophisticated attack where an attacker changes the algorithm from **RS256** (asymmetric) to **HS256** (symmetric), forcing server to use its own public key to verify a signature, as if it were a Private secret
+
+_**Trusting the Client**_
+
+A fundamental security anti-pattern where a server relies on data provider by the user (like the <kbd>alg</kbd> header) to decide how to perform security checks
+
+### Concept: The "Self-Describing" Trap
+
+JWTs are designed to be "self-describing". "The header tells the server:" "Hey, I am JWT, and I used Algorithm X to sign data"
+
+The Vulnerability exists because many early JWT libraries (and poorly configured moderns ones) would read the header and dynamically choose the verification logic basic on what user sent. If the user sends a token and says, "I used no algorithm," a vulnerable server will skip the signature check entirely. If the user, "I used HS256," the server might try to verify it using a symmetric method, even if it was originally designed for asymmetric RS256.
+
+### Why if exists: Flexibility vs Security
+
+The JWT specification (RFC 7519) included the <kbd>none</kbd> algorithm to support use cases where a signature is already handled by a lower layer(like a security tunnel). However, in web applications, this flexibility became a [liability](#d-liability)
+
+Algorithm Confusion attacks exists because of a mathematical "quirk":
+
+- In **RS256**, the server uses a **Public key** to verify.
+- In **HS256**, the server uses a **Shared Secret** to verify.
+
+If an attacker changes the header to <kbd>HS246</kbd> and the library is not told to only accept <kbd>RS256</kbd>, the library will take whatever key is provided in the configuration (often the public key) and treat is as the "Shared secret". Since the Public key is public, the attacker can use it to sign their own malicious tokens.
+
+### Internal Working: Algorithm Confusion Attack
+
+1. **Preparation**: The attacker obtain the server's **Public key** (which is usually public or easily accessible)
+2. **Modification**: The attacker creates a fake JWT with a payload like `{ "user" : "admin" }`
+3. **Header Swap**: The attacker changes the header to `{ "alg" : "HS256", "typ" : "JWT" }`
+4. **Signing**: The attacker signs the JWT using the **Server's Public Key** as the HMAC secret.
+5. **Submission**: The server receives the token. It sees `alg: HS256`. It looks for its "Secret". If the developer passed the same key object used for RS256, the library uses the public key string as the HMAC secret.
+6. **Validation**: The Signature matches! The attacker is now logged in as "Admin".
+
+### Implementation: Vulnerable vs Secure code
+
+Using the popular `jsonwebtoken` library in Node.js, here is how senior developer prevents these attacks.
+
+**The Vulnerable way (Implicit Trust)**
+
+```js
+//DANGEROUS:  The library decides which algorithm to use based on the token header
+
+const decoded = jwt.verify(token, publicKey);
+```
+
+**The Secure way (Explicit Enforcement)**
+
+```js
+// SECURE: We explicitly lock the algorithm.
+// If the user sends 'none' or 'HS256', the library throws an error.
+const decoded = jwt.verify(token, publicKey, {
+    algorithms: ["RS256"],
+});
+```
+
+### The Algorithm Confusion Attack flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Attacker as 👺 Attacker
+    participant Server as 🖥️ Vulnerable Server
+
+    rect rgb(40, 40, 40)
+    Note over Attacker: Phase 1: Preparation
+    end
+    Attacker->>Server: 1. Fetch Public Key (RS256)
+    Server-->>Attacker: Returns Public Key (as string)
+
+    rect rgb(60, 40, 40)
+    Note over Attacker: Phase 2: Forgery
+    end
+    Note right of Attacker: 2. Create JWT {user: "admin"}<br/>3. Set Header {alg: "HS256"}<br/>4. Sign JWT using Public Key as HMAC Secret
+
+    rect rgb(40, 50, 40)
+    Note over Server: Phase 3: Validation Failure
+    end
+    Attacker->>Server: 5. Submit Forged Token
+    Note right of Server: Server sees "HS256"<br/>Server uses Public Key to verify HMAC
+    Server-->>Attacker: 6. 200 OK (User is Admin)
+```
+
+### Important Architecture Note
+
+This security hardening belongs in your **Authentication Middleware Layer**. It is the "Guard" at the entrance of your system. A Senior Architect ensures that the validation logic is **Restrictive (Allow-list)** rather than** Permissive (Block-list)**. You don't block <kbd>none</kbd>; you only allow <kbd>RS256</kbd>.
+##check
+
+---
+
 # Glossary
 
 ## A. Delegated Access
@@ -4186,3 +4294,7 @@ Cookies are small text files placed on a user's device by a website to remember 
 ## C. Vague
 
 not clear or definite / not thinking or understanding correctly
+
+## D. Liability
+
+Liability in security refers to the legal responsibility of individuals, businesses, or property owners for failing to provide adequate protection
