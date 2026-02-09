@@ -58,7 +58,7 @@
 
 ## [PHASE 6 — Security Hardening](#phase-6-security-hardening)
 
-- [6.1 JWT Misconfigurations](#61-jwt-misconfigurations)
+- [6.1 Common Auth Vulnerabilities](#61-common-auth-vulnerabilities)
 
 ## [Glossary](#glossary)
 
