@@ -2081,7 +2081,7 @@ Browsers are exposed to:
 
 - Cross-Site Scripting (XSS)
 - Malicious extensions
-- History and referrer leakage
+- History and Referrer leakage
 - Debug tools and logs
 
 An access token in the browser is equivalent to **handing control to attacker**
@@ -4179,9 +4179,9 @@ These nuances live in your **Configuration/Environment Layer**. A well-architect
 
 # Phase 6 Security Hardening
 
-## 6.1 JWT Misconfigurations
+## 6.1 Common Auth Vulnerabilities
 
-### Terminologies
+### Terminologies (JWT Misconfigurations)
 
 _**Header Manipulation**_
 
@@ -4277,6 +4277,244 @@ sequenceDiagram
 ### Important Architecture Note
 
 This security hardening belongs in your **Authentication Middleware Layer**. It is the "Guard" at the entrance of your system. A Senior Architect ensures that the validation logic is **Restrictive (Allow-list)** rather than** Permissive (Block-list)**. You don't block <kbd>none</kbd>; you only allow <kbd>RS256</kbd>.
+##check
+
+---
+
+### Token Leakage
+
+Even a cryptographically perfect JWT is useless if it is accidentally revealed to an unauthorized party. Token leakage occurs when sensitive credential escape the "Trusted Zone" and enters logs, browser history, or third-party headers.
+
+### Terminologies (Token Leakage)
+
+_**Referrer Header**_
+
+An HTTP header that tells a website where a user comes from. If a token is in the URL, the next website the user clicks on will receive that token in the `Referrer` header.
+
+_**Side-channel Leakage**_
+
+When a token is exposed to a unintended medium, such a server logs, error message, or browser console outputs.
+
+_**Log sanitization**_
+
+The process of automatically scrubbing sensitive patterns (like `Bearer eyJ....`) from application logs before it write to a disk or sent to a logging service(like ELK or Splunk).
+
+_**Browser History/Cache**_
+
+The Localstorage of URLs visited by a user. If tokens are passed as query parameters (`?token=eyJ....`) they are permanently stored in the browser's history file.
+
+### Concept "Information Spillage"
+
+In a secure architecture, tokens are treated as "Biological Hazards." They should only exist in specific, shielded containers(like `Authorization` header or `HttpOnly` cookies). **Token Leakage** happens when these "hazards"
+spill into the public or semi-public areas of your infrastructure.
+
+The most common leak is the **URL Leak**. If you send a token as a query parameter, it is no longer private. It is now visible to:
+
+1. The user's browser history.
+2. The server's access logs (Nginx/Apache)
+3. Any third-party analytics scripts running on the page
+
+### Why it exists: Developer Convenience vs Default Behavior
+
+Leakage usually occurs because of "Default Behaviors."
+
+- **Logging** : Frameworks like Morgan or Winston often logs the entire object by default.
+- **Browsers** : Browsers automatically sends the `Referrer` header to help websites tract traffic sources.
+- **Error Handling** : When a backend fails, developers often return the "Original Request" in the error body to help with debugging, inadvertently sending token back to the client in a plain JSON response.
+
+### Internal Working: The Leakage Paths
+
+1. **The Referrer Leak**: User is on `myapp.com/callback?token=XYZ`. User clicks a link oto `partner-site.com`. The browser sends a request to `partner-site.com` with the header `Referrer: myapp.com/callback?token=XYZ`. The Partner now owns the token.
+
+2. **The Infrastructure Leak**: An Nginx load balancer logs every request line. It writes `GET /api/v1/user?auth=eyJ..` to `/var/log/nginx/access.log`. A DevOps engineer with log access now has the tokens.
+
+3. **The Exception Leak** : Your code crashes, the `catch(err)` block sends `res.json({ error :  err , context :  req.headers })`. The token is now in the response body
+
+### Implementation: Prevention and Sanitization
+
+As a Senior Engineer, you prevent leakage at the **Middleware** and **Global config** level.
+
+**A. Secure Headers (Preventing Referrer Leaks)**
+
+We use `helmet` to tell the browser: "Never send the full URL in the Referrer header".
+
+```js
+import helmet from "helmet";
+
+//set the Referrer-Policy to 'no-Referrer' or 'strict-origin-when-cross-origin'
+
+app.use(helmet.referrerPolicy({ policy: "no-referrer" }));
+```
+
+**B. Log Sanitization (Preventing Infrastructure Leaks)**
+
+We configure our logger (e.g Winston) to scrub the `Authorization` header before it hits the disk.
+
+```js
+import winston from "winston";
+
+const sanitize = winston.format((info) => {
+    //Regex to find and replace Bearer tokens
+
+    if (info.message) {
+        info.message = info.message.replace(
+            /Bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*/g,
+            "Bearer [REDACTED]",
+        );
+
+        return info;
+    }
+});
+
+const logger = winston.createLogger({
+    format: winston.format.combine(sanitize(), winston.format.json()),
+    transports: [new winston.transports.Console()],
+});
+```
+
+### Visual Representation: Token Leakage Scenarios
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as 🌐 Browser
+    participant Log as 📄 Server Logs
+    participant ThirdParty as 😈 External Site
+    participant BFF as 🛡️ Express BFF
+
+    rect rgb(35, 35, 35)
+    Note over Browser, ThirdParty: SCENARIO 1: Referer Leak
+    end
+    Browser->>BFF: GET /callback?token=EY...
+    Note right of Browser: Token stored in History
+    Browser->>ThirdParty: Click External Link
+    ThirdParty-->>Browser: Referer: myapp.com/token=EY...
+    Note over ThirdParty: Token Stolen!
+
+    rect rgb(45, 45, 45)
+    Note over BFF, Log: SCENARIO 2: Log Leak
+    end
+    BFF->>Log: Error: Auth failed for Bearer EY...
+    Note over Log: Token written to plain text disk!
+
+    rect rgb(35, 45, 35)
+    Note over BFF: SCENARIO 3: Proper Sanitization
+    end
+    Note right of BFF: Helmet: Referrer-Policy: no-referrer
+    Note right of BFF: Logger: Regex.replace(Token, '[REDACTED]')
+    BFF-->>Browser: 200 OK (Clean)
+
+```
+
+---
+
+### BOLA (Broken Object Level Authorization) / IDOR (Insecure Direct Object Reference)
+
+### Terminologies (BOLA/IDOR)
+
+_**BOLA / IDOR**_
+
+A vulnerability where an application provides access to an object (like a user profile, invoice, or message) based on a user-supplied ID without verifying if the requesting user has permission to access that specific object.
+
+_**Object Reference**_
+
+The unique identifier (e.g., `invoice_id`, `user_id`, or a UUID) used to retrieve a specific record from a database.
+
+_**Direct Reference**_
+
+Using the actual database primary key (like 12345) directly in the URL or API request.
+
+_**Ownership Predicate**_
+
+The logical condition in a database query that ensures the data belongs to the requester `(e.g., WHERE id = ? AND owner_id = ?)`.
+
+_**Horizontal Privilege Escalation**_
+
+An attack where a user accesses data belonging to another user of the same rank `(e.g., User A viewing User B’s private photos)`.
+
+### Concept : Identity vs Permission
+
+The Core of BOLA is a failure to distinguish between **Authorization** and **Object-Level Authorization**.
+
+When a user logs in, your middleware confirms: "Yes, this is User 55." This is Authentication. However, when User 55 requests `GET /api/invoice/999`, the system must ask a second question: _"Does invoice 999 actually belongs to User 55?"_
+If the system only checks if the user is logged in but fails to check the relationship between **User** and **Invoice**, an attacker can simply change the ID in the URL to view invoice in the system.
+
+### Why it exists: The "Hidden" Logic Gap
+
+BOLA exists because authorization logic is often "hidden" within the business logic of the code rather than being centralized in security middleware.
+
+Developers often assume that because a URL is not linked in the UI, a user will never find it. They rely on "Security through Obscurity." However, attackers use automated tools to "fuzz" or increment IDs (changing` /api/user/101` to `/api/user/102`) to discover and scrape data. Because the code only checks `req.user.id` exists, but doesn't compare it to the resource's owner, the data is wide open.
+
+### Internal Working: Probing the API
+
+1. **Discovery**: An Attacker logs into their own account and sees their ID is `5001`.
+2. **Manipulation**: They notice the URL is `/api/settings/5001`. They change it to `/api/settings/5000`.
+3. **Exploitation**: If the server returns User 5000's private settings, the attacker now knows the system is vulnerable
+4. **Automation**: The attacker writes a script to iterate from `1` to `10000`, downloading the private data of every user in the database
+
+### Implementation: Vulnerable vs Secure
+
+**The Vulnerable Way(BOLA present)**
+
+The developer trusts the ID from the URL and only checks if the user is "logged in."
+
+```js
+app.get("/api/invoice/:id", authenticate, async (req, res) => {
+    const invoice = await db.Invoices.findByPk(req.params.id);
+
+    if (!invoices) return res.status(404).send("Not Found");
+
+    res.json(invoice);
+});
+```
+
+**The Secure Way(Ownership Check)**
+
+We force the database query to include the `userId` from the verified JWT/Session
+
+```js
+app.get("/api/invoice/:id", authenticate, async (req, res) => {
+    const invoice = await db.Invoices.findOne({
+        where: {
+            id: req.params.id,
+            ownerId: req.user.id, //Critical Ownership Predicate
+        },
+    });
+
+    if (!invoices) return res.status(404).send("Invoice Not Found");
+
+    res.json(invoice);
+});
+```
+
+### Visual Representation: BOLA Attack vs Defense
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Attacker as 👺 Attacker (User 55)
+    participant API as 🛡️ Express API
+    participant DB as 🗄️ Database
+
+    rect rgb(45, 35, 35)
+    Note over Attacker, DB: SCENARIO 1: Successful BOLA Attack
+    end
+    Attacker->>API: GET /api/orders/99 (Invoice of User 99)
+    Note right of API: Auth: "Yes, User 55 is logged in."
+    API->>DB: SELECT * FROM orders WHERE id = 99
+    DB-->>API: Returns User 99's Order
+    API-->>Attacker: 200 OK (Data Leaked)
+
+    rect rgb(35, 45, 35)
+    Note over Attacker, DB: SCENARIO 2: Secure Ownership Check
+    end
+    Attacker->>API: GET /api/orders/99
+    Note right of API: Auth: "User 55 is logged in."
+    API->>DB: SELECT * FROM orders WHERE id = 99 AND owner_id = 55
+    DB-->>API: NULL (No match found)
+    API-->>Attacker: 404 Not Found (Data Protected)
+```
+
 ##check
 
 ---
