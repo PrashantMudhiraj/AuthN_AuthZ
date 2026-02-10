@@ -4571,7 +4571,7 @@ In a Professional Express app, we use a middleware factory to check roles.
 //1. Define the Role Hierarchy/Mapping (Usually stored in DB or Config)
 const rolesConfig = {
     admin: ["views_reports", "edit_users", "delete_users"],
-    editor: ["views_reports", "edit_users"]
+    editor: ["views_reports", "edit_users"],
     viewer: ["views_reports"]
 }
 
