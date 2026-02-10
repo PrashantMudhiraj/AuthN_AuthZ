@@ -59,6 +59,7 @@
 ## [PHASE 6 — Security Hardening](#phase-6-security-hardening)
 
 - [6.1 Common Auth Vulnerabilities](#61-common-auth-vulnerabilities)
+- [6.2 Authorization Models](#62-authorization-models)
 
 ## [Glossary](#glossary)
 
@@ -4514,6 +4515,254 @@ sequenceDiagram
     DB-->>API: NULL (No match found)
     API-->>Attacker: 404 Not Found (Data Protected)
 ```
+
+---
+
+## 6.2 Authorization Models
+
+### RBAC (Role-Based Access Control)
+
+RBAC is the most common starting point for any enterprise application. It simplifies management by grouping permissions into "Roles" and assigning those roles to users.
+
+### RBAC Terminology
+
+_**Subject**_
+
+The user or service requesting access.
+
+_**Role**_
+
+A collection of permissions(e.g; "Support Tier 1").
+
+_**Permission**_
+
+A specific action on a specific resource (e.g., "READ_USER_EMAILS")
+
+_**Assignment**_
+
+The link between a Subject and a Role
+
+_**Role Hierarchy**_
+
+A structure where a "Super Admin" automatically possesses all permissions of a "Manager" and a "User"
+
+### Concept: The "Middleware" of Identity
+
+In RBAC, we don't ask, _"Who is this user?"_ We ask, _"What is this user's function?"_
+
+Instead of assigning the "Delete User" permission to 50 individual employees, we create a role called "HR_MANAGER", give that role the "Delete User" permission, and then assign the employee to that role. This makes it easy to revoke access, you just remove the role from the user, and all associated permission vanish instantly.
+
+### Why it exists: Management at Scale
+
+Assigning individual permissions to thousands of users is a administrative nightmare and prone to human error. RBAC exists to provide an **abstraction layer**. It allows the security team to define "What a Manager can do" once, and them the operation team can simply move users in and out of that "Manager" bucket as their jobs change.
+
+### Internal Working: The Hierarchy and Enforcement
+
+1. **Identification**: The user provides a JWT containing their assigned roles (e.g `roles: ["editor"]`)
+2. **Mapping**: The server maintains a mapping of which Roles have which permissions
+3. **Hierarchy**: If a user is a "Admin," the logic check if "Admin" is higher than "Editor". If yes, the user is granted "Editor" rights.
+4. **Enforcement**: A middleware checks the resolved roles against the requirement of the route.
+
+### Implementation: Simple RBAC Middleware
+
+In a Professional Express app, we use a middleware factory to check roles.
+
+```js
+//1. Define the Role Hierarchy/Mapping (Usually stored in DB or Config)
+const rolesConfig = {
+    admin: ["views_reports", "edit_users", "delete_users"],
+    editor: ["views_reports", "edit_users"]
+    viewer: ["views_reports"]
+}
+
+//2. The Middleware Factory
+const authorizeRole = (requiredRole) => {
+    return (req, res, next) => {
+        const userRoles = res.user.roles; //Extracted from JWT earlier
+
+
+        //Simple check: Does the user have the exact role
+        // (In a real app, you would check hierarchy here)
+        if(userRoles.includes(requiredRoles) || userRoles.includes('admin')) {
+            return next();
+        }
+
+        return res.status(403).json({
+            error: "Forbidden",
+            message: `Requires ${requiredRole} role`.
+        })
+    }
+}
+
+//3. Usage in Routes
+app.delete("api/users/:id" , authenticate, authorizeRole("admin"), (req, res) => {
+    res.send("User deleted.");
+})
+```
+
+### RBAC Hierarchy
+
+```mermaid
+flowchart TD
+    %% Role Hierarchy Nodes
+    SA[<b>Super Admin</b><br/><i>Level 4</i>]
+    A[<b>Admin</b><br/><i>Level 3</i>]
+    E[<b>Editor</b><br/><i>Level 2</i>]
+    V[<b>Viewer</b><br/><i>Level 1</i>]
+
+    %% Permission Nodes
+    P_SA[Full System Access]
+    P_A[delete_users]
+    P_E[edit_users]
+    P_V[view_reports]
+
+    %% Inheritance Connections (The Hierarchy)
+    SA -- "inherits" --> A
+    A -- "inherits" --> E
+    E -- "inherits" --> V
+
+    %% Permission Assignments
+    SA -.-> P_SA
+    A -.-> P_A
+    E -.-> P_E
+    V -.-> P_V
+
+    %% Styling for Dark Mode Visibility
+    style SA fill:#b2ebf2,stroke:#00acc1,color:#000,stroke-width:2px
+    style A fill:#b2ebf2,stroke:#00acc1,color:#000
+    style E fill:#b2ebf2,stroke:#00acc1,color:#000
+    style V fill:#b2ebf2,stroke:#00acc1,color:#000
+
+    style P_SA fill:#fff9c4,stroke:#fbc02d,color:#000,stroke-dasharray: 5 5
+    style P_A fill:#fff9c4,stroke:#fbc02d,color:#000,stroke-dasharray: 5 5
+    style P_E fill:#fff9c4,stroke:#fbc02d,color:#000,stroke-dasharray: 5 5
+    style P_V fill:#fff9c4,stroke:#fbc02d,color:#000,stroke-dasharray: 5 5
+
+    %% Grouping for Clarity
+    subgraph Legend
+        L1[Blue = Role]
+        L2[Yellow = Specific Permission Added]
+    end
+    style Legend fill:#eceff1,stroke:#37474f,color:#000
+```
+
+---
+
+### Permission-Based Authorization
+
+Often called as Capability-Based Security.
+
+### Permission-Based AuthZ Terminologies
+
+_**Capability/Permission**_
+
+A granular, atomic action that can be performed on a resource (e.g., `users:delete`, `reports:export`)
+
+_**Decoupling**_
+
+The practice of separating "identity" of the user from the "Actions" they are allowed to perform.
+
+_**Granularity**_
+
+The level of detail in your security rules. RBAC is "Coarse-grained" (big buckets); Permission-based is "Fine-grained" (tiny specific switched)
+
+_**Atomic Action**_
+
+An Action that cannot be broken down further (e.g., `READ` is an atom, but `MANAGE` is a collection of atoms).
+
+### Concept "Can Do" vs "Is A"
+
+In a traditional **RBAC** system, your code asks: **Is this user an Admin?** (`if(user.role === 'admin')`). This is a rigid "Is A" check.
+
+In a **Permission-Based** system, you code asks: **Does this user have the permission to delete_user?** (`if(user.can('delete_user'))`)
+
+The "Role" becomes nothing more than a "Label" or a "Folder" that holds a list of permissions. Tha application code never sees the role; It only see the permission. This allows you to create a new role (e.g; "Support_Lead") and give them the `delete_user` permission without ever changing a single line of your application code.
+
+### Why it exists: Avoiding the "Role Explosion" and "Hardcoding"
+
+When you hardcode `if (role === 'admin')` throughout 50 files in your project, your application is now "locked" into those specific roles.
+
+If your business later decides they want a "Moderator" who can edit posts but not delete them, you have to find every place you checked from `admin` and manually update the logic to: `if (role === 'admin' || role === 'moderate)`;
+
+As you add more roles, your `if` statement grow until they are unmanageable. Permission-based authorization removes this entirely by keeping the "Logic" constant while the "Configuration" changes.
+
+### Internal Working: The Mapping Layer
+
+1. **Identity**: The user logs in and the server identifies their **Role** (e.g., `Editor`)
+2. **Lookup**: The system looks up the **Permission** associated with that role from a configuration file or database.
+3. **Tokenization**: These permissions are either injected into the **JWT** (for statelessness) or cached in a **Session** (for statefulness)
+4. **Enforcement**: The Express middleware check for the presence of a specific permission string (e.g., `article:publish`) before allowing the request to hit the controller.
+
+### Implementation: Permission-Based Middleware
+
+```js
+//1. The Configuration (The Source of truth)
+const rolePermissions = {
+    admin: ["user:create", "user:delete", "report:view"],
+    support: ["user:view", "report:view"],
+    viewer: ["report:view"],
+};
+
+//2. The Permission Middleware Factory
+const requirePermission = (permission) => {
+    return (req, res, next) => {
+        //Assume 'req.user.permissions' was populated during authentication
+        // or looked up fro the 'rolePermissions' mao
+        const userPermissions = req.user.permissions || [];
+
+        if (userPermissions.includes(permission)) {
+            return next();
+        }
+
+        return res.status(403).json({
+            error: "Forbidden",
+            message: `Missing required permission: ${permission}`,
+        });
+    };
+};
+
+//3. Usage: The business logic is now decoupled from the Role.
+
+app.delete(
+    "/api/users/:id",
+    authenticate,
+    requirePermission("user:delete"), //we check the ACTION, not  the ROLE
+    (req, res, next) => {
+        res.send("User removed from system");
+    },
+);
+```
+
+### Visual Representation: Permission-Based Authorization
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Auth as Auth Middleware
+    participant Store as Identity/RBAC Store
+    participant Controller as Resource Controller
+
+    Note over Client, Controller: 1. Identity Resolution
+    Client->>Auth: HTTP Request (JWT in Header)
+    Auth->>Auth: Extract Role (e.g., 'Editor')
+    Auth->>Store: Lookup Permissions for 'Editor'
+    Store-->>Auth: ['user:view', 'post:edit', 'post:create']
+
+    Note over Client, Controller: 2. Enforcement Point
+    Auth->>Auth: Validate Requirement ('post:edit')
+
+    alt Permission Exists
+        Auth->>Controller: Forward Request
+        Controller-->>Client: 200 OK (Resource Data)
+    else Permission Missing
+        Auth-->>Client: 403 Forbidden (Access Denied)
+    end
+```
+
+### Where this fits in Architecture
+
+PBAC is the "Gold Standard" for enterprise applications. It is often implemented using specialized languages like **Rego** (used by Open Policy Agent) or specialized libraries. It allows the authorization logic to be decoupled from the application entirely, sometimes even running as a separate microservice.
 
 ##check
 
