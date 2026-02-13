@@ -6003,7 +6003,7 @@ const app = express();
 //1. Define your trusted origins
 const allowedOrigins = [
     "http://localhost:3000", //Local Development
-    "https://app.production.com", // Production frontend
+    "https://app.production.com", //Production frontend
 ];
 
 //2. Configure CORS Options
@@ -6063,11 +6063,211 @@ sequenceDiagram
 
 ## 7.4 Rate Limiting and Brute Force Protection
 
+### Terminologies
+
+- **Rate Limiting**: A Strategy to limit the number of requests a user or an IP address can make within a specific time window.
+- **Brute Force Attacks**: A trail-and-error method used by attackers to guess passwords or session tokens by sending thousands of combinations rapidly.
+- **Credentials Stuffing**: A type of brute force where attackers use list of compromised usernames and passwords from other data breaches to try and gain access to your system.
+- **Throttling**: The process of slowing down a user's requests instead of completely blocking them(e.g., adding a 2-second delay to every failed login attempt)
+- **Fixed Window vs Sliding Window**
+    - _Fixed window_: Resets every hour (e.g., 100 requests allowed from 1:00 to 2:00)
+    - _Sliding window_: Resets relative to the last request(e.g., 100 requests allowed in any 60-minute period)
+- **429 Too Many Requests:** The standard HTTP status code used a rate limit is exceeded.
+
+### Concept: The "GateKeeper"
+
+The core concept of Rate Limiting is **Resource Preservation**
+
+An authentication endpoint is computationally "expensive". It involves database lookups and cryptographic password hashing (like `bcrypt`), which is intentionally designed to be slow to prevent hacking. If an attacker sends thousands of login requests, you CPU will spike to 100%, and your legitimate users will be unable to login (a Denial of Service). The Rate Limiter acts as a gatekeeper that counts requests and shuts the door if it sees "unhuman" behavior.
+
+### Why it exists: Asymmetry of Attack
+
+In Security, there is an **Asymmetry**: It costs an attacker very little to send a request, but it costs your server a lot of resources to verify a password.
+
+Without rate limiting:
+
+1. **Password Guessing**: An attacker can guess thousands of passwords per minute.
+2. **Resource Exhaustion**: An attacker can crash your database by flooding it with authentication queries.
+3. **Cost**: If you use paid identity Provider (like AuthO or AWS Cognito), an attacker can inflate your bill by triggering millions of authentication attempts.
+
+### Internal Working: The Counter Logic
+
+1. **Identity Identification**: The system identifies the requester, usually by their **IP Address** or their **User ID** (if logged in).
+2. **The Bucket/Window**: For every IP, the system creates a "bucket" in a fast, in-memory store (like **Redis**)
+3. **Increment & Check**:
+    - Each request increments the counter
+    - If the Counter > Max Allowed, return `429`
+
+4. **Expiry**: After the time window(e.g., 15 minutes), the bucket is automatically deleted, and the user can try again.
+
+### Implementation: Production-Grade Rate Limiting
+
+```js
+import rateLimit from "express-rate-limit";
+import RedisStore from "rate-limit-redis";
+import { createClient } from "redis";
+
+//1. Setup Redis (centralized Store)
+const redisClient = createClient({ url: "redis://localhost:6379" });
+await redisClient.connect();
+
+
+//2. Define the Login Limiter(Strict)
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, //15 minutes
+    max: 5, //Limit each IP to 5 failed attempts per window
+    message: "Too many login attempts. Please try again after 15 minutes",
+    standardHeaders: true, //Return RateLimit headers
+    legacyHeaders: false,
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+    })
+    //custom logic: Only count the request if the login fails
+    skipSuccessfulRequests: true,
+})
+
+//3. Define a General API Limiter (Lax)
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000 , //1 minute
+    max: 100, // 100 requests per minute
+    store: new RedisStore({
+         sendCommand: (...args) => redisClient.sendCommand(args),
+    })
+})
+
+
+//4. Apply to routes
+app.use('/api' , apiLimiter);
+app.post('/auth/login' , loginLimiter , (req, res) => {
+    //Login logic here
+    res.send("Login process");
+})
+```
+
+### Flow Diagram : Rate Limiting Logic
+
+```mermaid
+flowchart TD
+    %% Nodes
+    A(["Incoming Request"])
+    B{"Identify Requester<br/>(IP or UserID)"}
+    C["Check Redis Store"]
+    D{"Counter > Max?"}
+    E["Increment Counter"]
+    F(["429 Too Many Requests"])
+    G(["Allow to Route"])
+
+    %% Styling
+    style A fill:#e0f7fa,stroke:#00838f,color:#000
+    style B fill:#fff9c4,stroke:#fbc02d,color:#000
+    style C fill:#b2ebf2,stroke:#00acc1,color:#000
+    style D fill:#fff9c4,stroke:#fbc02d,color:#000
+    style E fill:#b2ebf2,stroke:#00acc1,color:#000
+    style F fill:#ffcdd2,stroke:#c62828,color:#000
+    style G fill:#c8e6c9,stroke:#2e7d32,color:#000
+
+    %% Connections
+    A --> B
+    B --> C
+    C --> D
+    D -- "YES" --> F
+    D -- "NO" --> E
+    E --> G
+```
+
 ---
 
 ## 7.5 Secrets and Key Management
 
-##check
+### Terminologies
+
+1. **Secrets**: Sensitive pieces of data used to prove identity or decrypt information, such as API keys, Database passwords, OIDC Client secrets, and JWT Private Keys.
+2. **Hardcoding**: The dangerous practice of embedding secrets directly into the source code (e.g., `const secret = "12345`)
+3. **KMS (Key Management Service)**: A managed service(like AWS KMW or Goggle Cloud KMW) that handles the creation, rotation, and lifecycle of cryptographic keys.
+4. **Vault**: A specialized tool(like HashiCorp Vault) designed specifically to store, secure, and tightly control access to secrets and other sensitive data.
+5. **Secret Rotation**: The security process of periodically changing secrets to reduce the "window of opportunity" for an attacker if a secret is leaked.
+6. **Environment Variables**: A set of dynamic values that can affect the way running processes will behave on a computer, used to inject secrets into an application without them being in the code.
+
+### Concept: Separation of Concerns
+
+The core concept of Secrets Management is the absolute **Separation of Code and Configuration**
+
+Your source code (the `.js` files) should be considered "Public" in you mental mode. Even if your repo is private, employees, CI/CD tools, and third-party auditors see it. Secrets, however, are "Private". They belongs to the **Environment** where the code is running (Development, Staging or Production). By Keeping secrets outside the code, you ensure that a leak of the source code does not lead to a total compromise of the production database or the identity provider.
+
+### Why it exists: The "GitHub Leak" and the "Trust Problem"
+
+The most common ways companies are hacked it through **Credentials Leakage**
+
+1. **Accidental Commits**: A developer accidentally pushes a .env file to a public Github repo. Bots scan Github 24/7 for these strings and will find your secret within seconds
+2. **The "Eggshell" Security**: If an attacker gets access to one developer's laptop, and that laptop contains the production `CLIENT_SECRET` in text file, the attacker now has full access to the production environment.
+3. **Rotation Requirement**: Security compliance (SOC2/PCI) requires that secrets be changed every 90 days. If secrets are hardcoded, you have to rebuild and redeploy you entire application just to change a password.
+
+### Internal Working: The Runtime Injection
+
+1. **Storage**: Secrets are stored in a secure "Secret Manager" (Vault or AWS Secrets Manager). They are encrypted at rest using a Master key.
+2. **Access Control**: The Express server is given a specific **IAM Role** (Identity and Access Management) only this role has permission to "Read" the specific secrets it needs.
+3. **Bootstrap Phase**: When the Express server start, it performs a "Secret Fetch". It calls the Secret Manager API, proves its identity (via its IAM Role), and receives the secret in memory.
+4. **Injection**: These secrets are usually injected into `process.env`. They exist only in the server's RAM and never touch the hard drive or the source code.
+
+### Implementation: Development vs Production
+
+```js
+import dotenv from "dotenv";
+import {
+    GetSecretValueCommand,
+    SecretsManagerClient,
+} from "@aws-sdk/client-secrets-manager";
+
+//1.Development logic
+if (process.env.NODE_ENV !== "production") {
+    dotenv.config({ path: "../env" });
+    console.log("Secrets loaded from local .env file");
+}
+
+//2. Production logic(BFF senior standard)
+async function loadProdSecrets() {
+    if (process.env.NODE_ENV === "production") {
+        const client = new SecretsManagerClient({ region: "us-east-1" });
+        const response = await client.send(
+            new GetSecretValueCommand({ SecretId: "prod/bff/google-creds" }),
+        );
+
+        const secrets = JSON.parse(response.SecretString);
+
+        //Inject into process.env at runtime
+        process.env.CLIENT_SECRET = secrets.CLIENT_SECRET;
+        process.env.DB_PASSWORD = secrets.DB_PASSWORD;
+        console.log("Production secrets fetched from KMS/Vault");
+    }
+}
+```
+
+### Flow Diagram: Secret Lifecycle
+
+```mermaid
+flowchart TD
+    %% Nodes
+    A[Admin/DevOps]
+    B[(<b>Vault / AWS Secrets Manager</b><br/>Encrypted Storage)]
+    C[CI/CD Pipeline]
+    D[Express App Instance]
+    E[IAM Role / Identity]
+
+    %% Flow
+    A -- "1. Uploads Secret" --> B
+    C -- "2. Deploys Code<br/>(No Secrets Inside)" --> D
+    D -- "3. Presents Identity" --> E
+    E -- "4. Authorizes" --> B
+    B -- "5. Injects Secret<br/>(In-Memory Only)" --> D
+
+    %% Styling
+    style A fill:#e1f5fe,stroke:#01579b,color:#000
+    style B fill:#c8e6c9,stroke:#2e7d32,color:#000
+    style C fill:#fff9c4,stroke:#fbc02d,color:#000
+    style D fill:#b2ebf2,stroke:#00acc1,color:#000
+    style E fill:#f3e5f5,stroke:#7b1fa2,color:#000
+
+```
 
 ---
 
