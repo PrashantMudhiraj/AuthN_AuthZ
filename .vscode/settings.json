@@ -4,21 +4,27 @@
 
     "cSpell.words": [
         "ABAC",
+        "autonumber",
         "Backchannel",
+        "Blocklist",
         "chacha",
         "CIBA",
         "Cipheriv",
         "Decipheriv",
+        "Diffie",
         "exfiltrated",
         "HMAC",
+        "HSTS",
         "IDOR",
         "Misissued",
         "myapp",
         "PBAC",
         "Recalc",
         "Referer",
+        "Rego",
         "statefulness",
         "subnetting",
+        "uuidv",
         "Verdana",
         "XACML"
     ]

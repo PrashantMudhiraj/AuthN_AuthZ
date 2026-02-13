@@ -62,6 +62,14 @@
 - [6.2 Authorization Models](#62-authorization-models)
 - [6.3 Production Best Practices](#63-production-best-practices)
 
+## [PHASE 7 — Platform and Network Security](#phase-7-platform-and-network-security)
+
+- [7.1 TLS/HTTPS](#71-tlshttps)
+- [7.2 CSRF (Cross-Site Request Forgery)](#72-csrf-cross-site-request-forgery)
+- [7.3 CORS (Cross-Origin Resource Sharing)](#73-cors-cross-origin-resource-sharing)
+- [7.4 Rate Limiting and Brute Force Protection](#74-rate-limiting-and-brute-force-protection)
+- [7.5 Secrets and Key Management](#75-secrets-and-key-management)
+
 ## [Glossary](#glossary)
 
 - [A. Delegated Access](#a-delegated-access)
@@ -4090,7 +4098,7 @@ _<h4>Internal Working: Key Nuances</h4>_
 
 - **Discovery URL:** `https://accounts.google.com/.well-known/openid-configuration`
 - **Logout:** Google does not provide a standard OIDC logout endpoint in their discovery document. Developers must manually redirect users to `https://accounts.google.com/Logout`.
-- **Access Tokens:** Google's access tokens are often "Opaque" strings, not JWTs. You cannot decode them; you must send them back to Google's `/userinfo` endpoint to get data.
+- **Access Tokens:** Google's access tokens are often "Opaque" strings, not JWTs. You cannot decode them; you must send them back to Google's `/userInfo` endpoint to get data.
 
 #### B. Auth0 Nuances
 
@@ -5609,11 +5617,9 @@ const zeroTrustGuard = async (req, res, next) => {
             actual: currentIp,
         });
 
-        return res
-            .status(403)
-            .json({
-                error: "Context change detected. Re-authentication required.",
-            });
+        return res.status(403).json({
+            error: "Context change detected. Re-authentication required.",
+        });
     }
 
     // 2. Device Fingerprint Check (Signal 2)
@@ -5685,6 +5691,383 @@ flowchart TD
 ### Where this fits in Architecture
 
 Zero Trust is an **End-to-End Philosophy**. It starts at the **BFF (Identity)**, moves through the **Network (TLS)**, and ends at the **Data Access Layer (Authorization)**. It is the architectural glue that connects all the security phases we have studied so far.
+
+---
+
+# Phase 7 Platform and Network Security
+
+## 7.1 TLS/HTTPS
+
+### TLS/HTTPS Terminologies
+
+- **TLS (Transport Layer Security)**: The cryptographic protocol that provides end-to-end security for data sent between applications over the internet. It is successor to **SSL (Secure Sockets Layer)**
+- **HTTPS**: A Combination of the Hypertext Transfer Protocol(HTTP) with the TLS protocol to provide encrypted communication and secure identification of a network web server.
+- **Cipher Suite**: A set of instructions (algorithms) that tells the server and browser how to encrypt the connection.It typically includes an algorithm for key exchange, bulk encryption, and message authentication.
+- **Certificate Authority (CA)**: A trusted entity that issues digital certificates. These certificates verify that a specific Public key belongs to a specific domain (e.g, `app.myapp.com`)
+- **HSTS (HTTP Strict Transport Security)**: A web security policy mechanism (a header) that forces browsers to interact with a website only using HTTPS, preventing "downgrade attacks".
+- **Handshake**: The multi-step negotiation process where a client and server agree on encryption keys.
+
+### Concept: The Integrity of th Pipe
+
+Think of HTTP as a open conversation in a crowded room. Anyone standing nearby (ISPs, hackers on public Wi-Fi, malicious government nodes) can listen in and even shout over you to change what you are saying.
+
+**TLS/HTTPS** creates a soundproof, armored tunnel between the browser and the server. This tunnel provide three core pillars of security:
+
+1. **Encryption (Privacy)**: No one can eavesdrop(listen secretly) on the conversation
+2. **Data Integrity**: No one can tamper with the data(e.g., changing the amount in a bank transfer) without being detected
+3. **Authentication (Trust)**: The browser can prove it is talking to the real server and not an imposter.
+
+### Why it exists: OAuth/OIDC Hard Requirement
+
+Modern identity protocols like **OAuth 2.0 and OIDC** are fundamentally broken without TLS. If you attempt to use them over plain HTTP. the following disasters occur:
+
+- **Bearer Token Theft**: Any attacker on the network path can see the `Authorization: Bearer <token>` header in plain text and instantly hijack the session.
+- **Credential Exposure**: When a user types their password into a login form, it travels as a plain text string.
+- **Redirect Hijacking**; During the OIDC flow, an attacker could intercept the `302 Redirect` and change the `redirect_uri` to a malicious site they control.
+
+Because of these risks, Identity Providers(Google, AuthO, Microsoft) **refuse** to allow non-HTTPS redirect URI's (with the sole exception of `localhost` for development)
+
+### Internal Working: The TLS 1.3 Handshake
+
+In Modern 1.3 (the industry standard since 2018), the process has been streamlined to reduce latency(only one "round trip" required).
+
+1. **Client Hello**: The browser sends its supported cipher suites and a "Key Share" (a mathematical guess of the secret)
+2. **Server Hello & Certificate**: The server picks the strongest cipher, sends it own "Key Share," and provides its **Digital Certificate**
+3. **Authentication**: The browser checks the certificate's digital signature against its pre-installed list of trusted **Root CAs**. if it matches, the server's identity is verified.
+4. **Symmetric Key Generation**: Using a process called **Diffie-Hellman**, both side combines their Key Share to create the same **Symmetric Session Key**. Crucially, the key itself is never actually sent over the wire.
+5. **Encrypted Application Date**: All subsequent HTTP traffic (Header, Cookie, Body) is encrypted using this Session key.
+
+### Implementation: Express with HTTPS and HSTS
+
+```js
+import https from `https`;
+import fs from `fs`;
+import express from 'express';
+import helmet from `helmet`;
+
+const app = express();
+
+//1. Mandatory security Headers
+//Helmet,s hsts header tells the browser:
+//"Only talk to me via HTTPS for the next year"
+
+app.use(helmet.hsts({
+    maxAge: 315360000, // 1 year in seconds
+    includeSubDomains: true,
+    preload: true
+}))
+
+//2. Load TLS certificate
+const options = {
+    key: fs.readFileSync('./certs/private-key.pem'),
+    cert: fs.readFileSync('./certs/public-cert.pem'),
+}
+
+app.get('/api/secure' (req, res) => {
+    res.json({ message : "This data traveled through a TLS 1.3 tunnel"});
+})
+
+//3. Start the Secure Server
+https.createServer(options, app).listen(443, () => {
+    console.log("Production Secure Server running on port 443");
+})
+
+```
+
+### Flow Diagram: TLS 1.3 Handshake
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as 🌐 Browser
+    participant Server as 🖥️ Express Server (Port 443)
+
+    rect rgb(35, 45, 55)
+    Note over Browser, Server: Phase 1: Negotiation & Identity
+    end
+    Browser->>Server: 1. Client Hello (Ciphers + Key Share A)
+    Server->>Browser: 2. Server Hello (Key Share B) + Certificate
+
+    Note over Browser: 3. Verify Certificate against Root CA
+
+    rect rgb(35, 55, 45)
+    Note over Browser, Server: Phase 2: Secure Tunnel Established
+    end
+    Note over Browser, Server: Both derive Session Key via Diffie-Hellman
+
+    Browser->>Server: 4. Encrypted GET /api/secure (Key used)
+    Server-->>Browser: 5. Encrypted Response (Key used)
+
+```
+
+---
+
+## 7.2 CSRF (Cross-Site Request Forgery)
+
+### Terminology
+
+- **CSRF**: An attack that tricks victim's browser into performing an unwanted action on a different website where the victim is currently authenticated.
+- **Ambient Authority**: A Security concept where the browser automatically attaches credentials (like Cookies or Basic Auth) to _every request_ made to a specific domain, regardless of which site initiated that request.
+- **Same-Origin Policy(SOP)**: A fundamental browser security mechanism that prevents a script on `site-a.com` from reading data from `site-b.com`. **Crucially, SOP does not prevent "sending" a request; it only prevents "reading" that response**
+- **Anti-CSRF Token (Synchronized Token)**: A unique, secret, and unpredictable string generated by the server and required to be present in state-changing requests (POST, PUT, DELETE).
+- **SameSite Attribute**: A cookie flag(`Strict`, `Lax`, or `None`) that instructs the browser whether to include the cookie in cross-site requests.
+
+### Concept: The "Automatic Trust" Problem.
+
+The core concept of CSRF is that **Browsers are helpful--too helpful**
+
+If you are logged into your bank (`bank.com`) and your browser has a session cookie for it, the browser will "helpfully" attach that cookie to **any** request going to `bank.com`. If you visit a malicious site (`attacker.com`) while still logged in, that site can trigger a hidden request to `bank.com/transfer`. Your browser sees the destination is `bank.com`, sees the session cookie, and attaches to it. To the bank, the request looks 100% legitimate because it has your session cookie.
+
+### Why it exists: The State-Changing Blind Spot
+
+CSRF exists because of a legacy design choice in the web: **Cross-site navigation was intended to be open**.
+
+standard HTTP was designed so that Site A could link to Site B. When we added "State" (Cookies) to this model, we created a vulnerability where an external site could not "link" to a page, but "trigger an action" on that page. Because the attacker cannot _read_ the response(SOP), they cannot steal you data, but they can **change** it. This makes CSRF a "write-only" attack.
+
+### Internal Working: Malicious Trigger
+
+1.  **Victim Logs In**: The user authenticates with `bank.com`. The server sets an `httpOnly` session cookie.
+2.  **Attacker Lure**: The victim visits `evil-cat-videos.com` (the attacker's site)
+3.  **The Forge**: Inside the HTML of the cat video page, there is hidden form:
+
+    ```html
+    <form action="https://bank.com/tranfer" method="POST" id="csrf-form">
+        <input type="hidden" name="to" value="attacker_id" />
+        <input type="hidden" name="amount" value="5000" />
+    </form>
+    <script>
+        document.getElementById("csrf-token").submit();
+    </script>
+    ```
+
+4.  **Automatic Submission**: The Javascript executes immediately. The browser sends a POST request to `bank.com`
+5.  **Ambient Authority**: The browser finds the `bank.com` session cookie and attaches it to the request.
+6.  **Server Execution**: The bank's server validated the cookie, sees a valid session, and processes the $5,000 transfer.
+
+### Implementation: Double-Submit Cookie Pattern (BFF)
+
+```js
+// OLD - csurf not in user
+import csurf from "csurf";
+import cookieParser from "cookie-parser";
+
+//1.Setup Cookie Parsing
+app.use(cookieParser("secret-key"));
+
+//2. CSRF Protection Middleware
+//This will expect a `_csrf` token in the request body or headers
+
+const csrfProtection = csurf({ cookie: true });
+
+//3. Endpoint to fetch the CSRF Token
+//The frontend calls this one at startup
+app.get("/api/csrf-token", csrfProtection, (req, res) => {
+    //Pass the token to the frontend (e.g., in a JSON response)
+    res.json({ csrfToken: req.csrfToken() });
+});
+
+//4. Protected State-Changing Route
+app.post("/api/user/update", csrfProtection, (req, res) => {
+    res.send("Profile updated securely");
+});
+
+// --------------------------------------------------------------------
+
+// Latest - csrf-csrf
+import express from "express";
+import cookieParser from "cookie-parser";
+import { doubleCsrf } from "csrf-csrf";
+
+const app = express();
+
+// 1. Basic Setup
+app.use(express.json());
+app.use(cookieParser("your-very-secure-cookie-secret"));
+
+// 2. Configure CSRF-CSRF
+const {
+    invalidCsrfTokenError, // Error to throw if validation fails
+    generateToken, // Function to create tokens
+    doubleCsrfProtection, // The actual middleware
+} = doubleCsrf({
+    getSecret: (req) => "your-very-secure-logic-secret",
+    cookieName: "x-csrf-token",
+    cookieOptions: {
+        httpOnly: true, // Crucial: JS cannot read this cookie
+        sameSite: "lax",
+        secure: true, // Only over HTTPS
+    },
+    size: 64, // 64-byte tokens for high entropy
+    getTokenFromRequest: (req) => req.headers["x-csrf-token"], // Look here for validation
+});
+
+// 3. Endpoint for the Frontend to get the token
+// The browser gets the cookie AND the JSON response
+app.get("/api/csrf-token", (req, res) => {
+    const token = generateToken(req, res);
+    res.json({ token });
+});
+
+// 4. Global Error Handler for CSRF
+app.use((error, req, res, next) => {
+    if (error === invalidCsrfTokenError) {
+        res.status(403).json({ error: "CSRF Validation Failed" });
+    } else {
+        next();
+    }
+});
+
+// 5. Apply Protection to state-changing routes
+app.post("/api/update-profile", doubleCsrfProtection, (req, res) => {
+    res.json({ message: "Profile updated securely!" });
+});
+```
+
+### Flow : CSRF Attack vs. Token Defense
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as 🌐 Browser (User)
+    participant Bank as 🖥️ Secure BFF (Bank)
+    participant Evil as 👺 Malicious.com
+
+    rect rgb(35, 45, 55)
+    Note over Browser, Bank: Scenario: THE ATTACK
+    end
+    Browser->>Bank: 1. Login (Sets Session Cookie)
+    Browser->>Evil: 2. Visit Malicious Site
+    Evil->>Browser: 3. Hidden Form (POST to Bank)
+    Browser->>Bank: 4. POST /transfer + Cookie (Auto-attached)
+    Bank-->>Browser: 5. 💰 Money Transferred (Attack Success)
+
+    rect rgb(35, 55, 45)
+    Note over Browser, Bank: Scenario: THE DEFENSE (Anti-CSRF Token)
+    end
+    Browser->>Bank: 6. GET /csrf-token
+    Bank-->>Browser: 7. Return SecretToken: "XYZ"
+    Browser->>Bank: 8. POST /transfer + Cookie + Header(X-CSRF: "XYZ")
+    Note right of Bank: Logic: Header "XYZ" matches Session "XYZ"?
+    Bank-->>Browser: 9. 200 OK (Legitimate Request)
+
+    rect rgb(45, 35, 35)
+    Note over Evil, Bank: Attacker attempt during defense
+    end
+    Evil->>Browser: 10. Trigger POST /transfer
+    Browser->>Bank: 11. POST /transfer + Cookie (No Header!)
+    Note right of Bank: Logic: Required Header Missing!
+    Bank-->>Browser: 12. 403 Forbidden (Attack Blocked)
+
+```
+
+---
+
+## 7.3 CORS (Cross-Origin Resource Sharing)
+
+### Terminologies
+
+- **Origin**: The combination of **Protocol** (http/https), **Domain** (example.com), and **Port** (3000). If any of these three changes, it is a different origin.
+- **Simple Request**: Certain requests (like basic GET or POST with standard content types) that the browser allows without checking first.
+- **Preflight Request (OPTIONS)**: For "non-simple" requests(like those with custom headers or JSON bodies), the browser sends an automatic `OPTIONS` request to the server first to ask for permission.
+- **Allow-Credentials**: A specific CORS header that must be set to `true` if the frontend need to send or receive **Cookies** or **Authorization headers**.
+- **Allow-Control-Allow-Origin**: The response header that specifies which frontend origins are allowed to see the response.
+
+### Concept: The Browser's Security Guard
+
+The core concept of CORS it that **the browser enforces the rules, not the server**.
+
+When your React app at `localhost:3000` tries to fetch data from your Express BFF at `localhost:4000`, the browser stops the request. It says, "Wait, these are different origins!", The browser then looks at the headers coming back from the server. If the server doesn't explicitly say "I allow localhost:3000," the browser will block the Javascript code from reading the response, even if the server successfully processed the request.
+
+### Why it exists : Protecting User Privacy
+
+CORS exists because without the **Same-Origin Policy**, any website you visit could steal your data.
+
+Imagine you are logged into your private email at `mail.com`. You then visit `malicious-site.com` in another tab. Without SOP, the JavaScript on `malicious-site.com` could make a background request to `mail.com/inbox` and read all your messages. Because your browser would automatically attach your `mail.com` cookies, the request would succeed. CORS provides a controlled way for `mail.com` to say: "I only allow my official mobile app or my trusted partner domains to read this inbox data."
+
+### Internal Working: The Preflight Dance
+
+1. **The Trigger**: The frontend attempts a `POST` request with `Content-Type: application/json`. The browser identifies this as a "non-simple request"
+2. **The Preflight(OPTIONS)**: Before sending the actual POST, the browser sends an `OPTIONS` request to the server. It includes header like `Origin: http://localhost:3000` and `Access-Control-Request-Method: POST`
+3. **The Server Decision**: The Express server receives the OPTIONS request. It checks its "Allow-list". If the origin is trusted, it responds with `Access-Control-Allow-Origin: http://localhost:3000`
+4. **The Actual Request**: If the Preflight succeeds, the browser finally sends the real `POST` request.
+5. **The Final Check**: The browser receives the response. It checks for the `Allow-Origin` header again. If it matches, the data is passed to your JavaScript Code.
+
+### Implementation: Using the `cors` Package in Express
+
+```js
+import express from "express";
+import cors from "cors";
+
+const app = express();
+
+//1. Define your trusted origins
+const allowedOrigins = [
+    "http://localhost:3000", //Local Development
+    "https://app.production.com", // Production frontend
+];
+
+//2. Configure CORS Options
+const corsOptions = {
+    origin: (origin, callback) => {
+        //Allow request with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
+    credentials: true, //MANDATORY for BFFs using Cookies
+    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+};
+
+//3. Apply the middleware
+app.use(cors(corsOptions));
+
+app.post("/api/data", (req, res) => {
+    res.json({ success: true });
+});
+```
+
+### Flow : The CORS Preflight Mechanism
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as 🌐 Browser (Origin: A)
+    participant Server as 🖥️ Express BFF (Origin: B)
+
+    rect rgb(35, 45, 55)
+    Note over Browser, Server: Phase 1: The Preflight Check
+    end
+    Browser->>Server: OPTIONS /api/data (Preflight)
+    Note right of Browser: Header: Origin: Origin_A<br/>Header: Access-Control-Request-Method: POST
+
+    Note right of Server: Is Origin_A in Whitelist?
+    Server-->>Browser: 200 OK
+    Note left of Server: Header: Access-Control-Allow-Origin: Origin_A<br/>Header: Access-Control-Allow-Credentials: true
+
+    rect rgb(35, 55, 45)
+    Note over Browser, Server: Phase 2: The Actual Request
+    end
+    Browser->>Server: POST /api/data (with JSON + Cookies)
+    Server-->>Browser: 200 OK (JSON Response)
+    Note over Browser: Browser verifies headers again and<br/>passes JSON to the JS code.
+```
+
+---
+
+## 7.4 Rate Limiting and Brute Force Protection
+
+---
+
+## 7.5 Secrets and Key Management
+
+##check
 
 ---
 
