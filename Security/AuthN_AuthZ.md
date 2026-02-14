@@ -70,6 +70,10 @@
 - [7.4 Rate Limiting and Brute Force Protection](#74-rate-limiting-and-brute-force-protection)
 - [7.5 Secrets and Key Management](#75-secrets-and-key-management)
 
+## [PHASE 8 — Common Implementation](#phase-8-common-implementation)
+
+- [8.1 Keycloak](#81-keycloak)
+
 ## [Glossary](#glossary)
 
 - [A. Delegated Access](#a-delegated-access)
@@ -6268,6 +6272,98 @@ flowchart TD
     style E fill:#f3e5f5,stroke:#7b1fa2,color:#000
 
 ```
+
+---
+
+# Phase 8 Common Implementation
+
+## 8.1 Keycloak
+
+Keycloak is an **Open Source** Identity & Access Management System
+
+- Provides **authentication** to applications
+- Deals with **Storing** and **authenticating** users
+- User federation
+- User management
+- Fine grained authorization
+
+Standard protocols support (OpenID Connect, OAuth 2.0 & SAML)
+
+### Terminologies
+
+- **Identity and Access Management(IAM)** : A framework of policies and technologies to ensure that the right users have the appropriate access to technology resources.
+- **Authorization Server**: The specialized server that authenticates the user and issues the OIDC tokens(ID Token, Access Token, Refresh Token)
+- **Self-Hosted IdP**: Unlike AuthO or Google (Saas IdPs), keycloak is a software package you run on your own infrastructure (Docker, Kubernetes)
+- **Realm**; A Keycloak-specific term for a "Security Silo". It's an isolated space containing users, roles, and clients
+- **User Federation**: The ability of keycloak to link with existing user database like LDAP or Active Directory
+
+### Concept: The "Source of Truth"
+
+Keycloak is the "Brain" of the entire operation. In all our previous code examples, we used `https://accounts.google.com` or `https://auth0.com` as our **Issuer URL**. If you use keycloak, that URL simply changes to your domain(e.g., `https://sso.mycompany.com`).
+
+keycloak centralized the security logic. Instead of your Express app checking passwords against a database, it delegates that work to keycloak. keycloak handles the multi-factor authentication (MFA), password reset emails, and social login buttons, then hands back a cryptographically signed JWT that your BFF can trust.
+
+### Why it exists: Control, Privacy, and Cost
+
+Why would a Senior Architect choose Keycloak over a paid service like AuthO?
+
+1. **Data Sovereignty**: In highly regulated industries(Banking, Government), you cannot send user data to a third-party cloud. Keycloak allows you to keep the "Identity Data" inside your own private network.
+2. **Customization**: keycloak is open-source. You can customize the login themes, the authentication flow logic, and the user registration process to a degree the SaaS providers often don't allow.
+3. **Cost at Scale**: Saas providers charge "per active user". If you have 10 million users, your monthly bill could be $50,000. With keycloak, you pay only for the server hardware you run it.
+
+### Internal Working: The Keycloak Integration
+
+keycloak follow the **OIDC Discovery** standard perfectly.
+
+1. **Discovery**: Your BFF calls
+   `https://keyclock/realms/myreal/.well-know/openid-configuration`
+2. **Endpoints**: Keycloak exposes the `/auth` , `/token` and `/userinfo`.
+3. **Verification**: Keycloak publishes its public key via the **JWKS** endpoint. You Express app uses these keys to verify the RS256 signature of the token keycloak issues.
+
+### Implementation: Keycloak Configuration
+
+```Bash
+# .env file
+# Instead of Google, we point to our local Keycloak instance
+ISSUER_URL=https://sso.mycompany.com/realms/production
+CLIENT_ID=my-bff-app
+CLIENT_SECRET=generated-in-keycloak-dashboard
+REDIRECT_URI=http://localhost:3000/callback
+```
+
+### Flow Diagram : System Architecture with Keycloak
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as 🌐 Browser
+    participant BFF as 🛡️ Express BFF
+    participant KC as 🔑 Keycloak (IdP)
+    participant API as ⚙️ Internal API
+
+    rect rgb(35, 45, 55)
+    Note over User, KC: THE IDENTITY DANCE
+    end
+    User->>BFF: 1. GET /login
+    BFF-->>User: 2. 302 Redirect to Keycloak
+    User->>KC: 3. Enter Username/Password
+    KC-->>User: 4. 302 Redirect to /callback?code=XYZ
+
+    rect rgb(35, 55, 45)
+    Note over BFF, KC: BACK-CHANNEL EXCHANGE
+    end
+    User->>BFF: 5. GET /callback?code=XYZ
+    BFF->>KC: 6. POST /token (Code + Secret)
+    KC-->>BFF: 7. ID Token + Access Token
+
+    rect rgb(45, 45, 35)
+    Note over BFF, API: RESOURCE ACCESS
+    end
+    BFF->>BFF: 8. Create Session (Cookie)
+    BFF->>API: 9. Forward request (Bearer Access Token)
+```
+
+##check
 
 ---
 

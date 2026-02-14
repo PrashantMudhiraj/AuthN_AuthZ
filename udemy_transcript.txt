@@ -1,0 +1,437 @@
+In this lesson, we're going to cover what API security was like before OAuth and learn why
+
+OAuth is important. Before OAuth it was actually very common for API is to use HTTP Basic
+
+Auth. That's just an application sending a username and password to the API.
+
+Now, of course, in order for this to work, applications had to ask the user for their
+
+password, store that password and then use that password in API requests.
+
+So that means when third party apps, like using third party Twitter clients want to do
+
+this, they would have to ask the user for their password and then store it and use it at
+
+the API. Now, if you saw this prompt now, would you give your Google password to this
+
+application? Many services quickly realized there were a lot of problems with this
+
+approach and started creating alternatives.
+
+And a lot of this work was driven by the need to have third party apps connect to
+
+platforms, and wanting to avoid having users give their passwords to random applications.
+
+So in the mid 2000s, as many websites started building public APIs, they all started
+
+solving this problem. But everybody did it slightly differently and everyone use
+
+different names for things.
+
+So Flickr's API was called FlickrAuth and it used "frobs" and "tokens".
+
+Google created AuthSub.
+
+Facebook just use MD5 signed requests, which is a terrible idea.
+
+Yahoo! Created BBAuth, which is short for a browser based auth.
+
+These all worked quite differently, but all shared the same goal, which was to allow
+
+applications to access data from third party apps without the users sharing their
+
+password. And even though these all worked differently, there were a lot of similarities
+
+in the general structure of these different mechanisms.
+
+So developers at these companies realized that they were all attempting to solve the same
+
+problem and that problem actually had nothing to do with their core business.
+
+So they actually started working together.
+
+By 2007, the first draft of OAuth 1 was published and it was deployed at several
+
+companies, including Twitter.
+
+So over the next few years, especially as mobile apps started to become popular, the
+
+industry started reaching several limitations with OAuth 1.
+
+It was, for one, really confusing to developers, but it also required using API keys in a
+
+way that just isn't safe in mobile phones.
+
+So it was very clear that this was not going to work in the long term with this sudden
+
+surge of mobile apps at the time.
+
+Shortly after OAuth 1 was brought into the IETF under a new working group, the group
+
+started working on a new version, OAuth 2, to fix up the problems with OAuth 1 and make
+
+it more useful in a wider variety of situations.
+
+Some of the things that OAuth 2 set out to solve were making it easier for developers to
+
+understand, so that involved things like dropping the signature requirements and using
+
+Bearer tokens instead, but also wanting to make sure that it's possible to use securely
+
+in mobile apps as well as single-page apps in a browser.
+
+Also, as larger companies started looking at adopting OAuth for their own APIs, they also
+
+needed to make sure that would work at a larger scale.
+
+And that's where you start to get the separation between the authorization server and the
+
+API server, whereas in OAuth 1, those entities share a lot more information.
+
+All of these things were taken into consideration when designing the spec, and things are
+
+in a much better place today because of it.
+
+We'll get into the specifics of how OAuth works and talk more about the roles of the
+
+authorization server and the API server in these later sections.
+
+So the OAuth 2.0 Spec was finalized in 2012, but the work hasn't stopped there since
+
+then. The IETF Working Group has continued to make progress on the specs, filling in some
+
+of the missing functionality and making OAuth more useful or more secure in even more
+
+situations. So now we've got everything from specs like the OAuth 2.0 For Native Apps
+
+extension to the Device Grant for using OAuth on smart TVs, and the OAuth Security Best
+
+Current Practice, which describes the most secure way to build OAuth systems today.
+
+
+--------------------------------------------------------------------------------------------------
+
+In this lesson, we're going to look at some of the previous ways applications handled
+
+authentication before OAuth.
+
+We'll learn the risks that are present when applications handle passwords directly, and
+
+set the groundwork to learn about the problems that OAuth set out to solve.
+
+We'll introduce these topics in this lesson and go into them in more detail in future
+
+lessons as well. One of the most common ways applications handle authentication is with a
+
+simple username and password prompt within the app, the application will ask the user to
+
+enter their password and then exchange that password for something like a session cookie
+
+. For relatively simple systems, this works fine for the most part, and by simple systems
+
+I mean the case of building a web app that has its own built in authentication.
+
+Of course you still have to make sure your website is storing password hashes properly,
+
+never logging passwords accidentally and so forth.
+
+But the problem is, as soon as you want to add a mobile app or create multiple apps that
+
+share a user database with single sign on, this starts to be very limiting.
+
+It's the single sign on case that really gets to the core of why OAuth was created,
+
+especially once you consider that you may want multiple apps by different companies to be
+
+able to share the same user database.
+
+Think Sign In with Apple, or creating apps to manage files in your Google Drive.
+
+Without OAuth, these applications would have to collect the user's password and send it
+
+to the API. And in the case of third party apps, this is clearly a problem, as we saw in
+
+the last lesson. But even for first party apps, it's also not a good idea.
+
+Let's talk about some of the specific problems with this approach.
+
+We'll split this into two sections.
+
+Problems that the user cares about and problems that the API cares about.
+
+First, put yourself in the shoes of the user for now.
+
+If you're using an app and it asks you to enter your Google password, how do you know you
+
+can trust it? Actually, it's a trick question, because specifically with Google,
+
+legitimate applications will never ask for your Google password.
+
+Even Google's own applications don't ask for your password, but we're getting a little
+
+bit ahead of ourselves there.
+
+We'll come back to that when we talk about mobile apps.
+
+Back to the question, though. Can you ever really be sure what an application is going to
+
+do with your password when you enter it?
+
+You hope it's just going to exchange it for some sort of session cookie and forget it.
+
+But you don't know if it might be accidentally logging the password somewhere or even
+
+intentionally storing it.
+
+For third party apps, this is a serious problem.
+
+If some photo editing app tries to save a photo to your Dropbox account and ask for your
+
+Dropbox password, that's a huge red flag, right, imagine what that app could do if you
+
+give it your password. All that app is trying to do is to upload a photo, but if you give
+
+it your Dropbox password, then the app can do a lot more than just upload a photo.
+
+It can read any files in your account.
+
+It could even go change your password if it wanted to.
+
+Handing your password to the app is like giving the app the keys to your account.
+
+Now, let's say you did this.
+
+Let's say you used a photo editor and uploaded the photo.
+
+Then you want to revoke that access to your account so that, you know it can't upload
+
+anything in the future. Well, really, the only way to do that is to go change your
+
+password so that if the app had saved your password, the old one wouldn't work anymore.
+
+And that's clearly not ideal, since it would also revoke every other app's access.
+
+And you have to log back in to everything again.
+
+Now, you might be thinking, oh, this is only a problem with third party apps, but I'm
+
+building apps for my own API so this doesn't apply.
+
+Well, let's take a closer look.
+
+Now, it's true that there isn't really the trust issue for users in the case of first
+
+party apps. Like if the Twitter app asks if your Twitter password, that's not really
+
+suspicious to you as a user.
+
+But let's take a look at what this looks like from the API perspective.
+
+If you're building the API and you have a separate app development team, your job is to
+
+make sure the API is secure and it's only accessed by real users and real applications.
+
+Now, if you have an API that takes a username and password and returns some sort of
+
+session ID or token, and you let all your app developers use that to log users in, well,
+
+you can't really tell the difference between which apps are using the API.
+
+That request looks the same from every app, but even worse, how do you know that it's
+
+actually your app at all?
+
+An attacker might take a password dump from some other service and start trying passwords
+
+at your API. So you can't really be sure that it's even actually the user making that
+
+request. And then you're likely going to want to add some sort of multifactor
+
+authentication to the login flow, whether that's email, SMS, push notification, hardware
+
+security key, whatever.
+
+So you pick one or more of those and add them to the API and now you have to go around to
+
+every app development team and get them to add support for your new MFA mechanism.
+
+And this just doesn't scale well.
+
+It ends up slowing down the development lifecycle.
+
+The next time you want to go out a new MFA type, you have to go through that whole
+
+process again of getting each app development team to add support for it.
+
+So let's talk about how OAuth solves this.
+
+We're going to look at this in detail in later sections of this course.
+
+But what OAuth does at a high level is requires that every application sends the user out
+
+to the OAuth server to log in there, and then redirects them back to the app so the app
+
+can get tokens. And the key thing here is this redirect step.
+
+It means the user actually leaves the application and they go type in their password at
+
+the OAuth server instead of ever giving their password to the application.
+
+So as soon as we avoid the application ever seeing the user's password, it solves all of
+
+these worries and uncertainties we have before.
+
+It provides security against untrusted third party apps and also makes first party apps
+
+much more flexible.
+
+This way, if you wanted to add MFA, you don't need to make any changes to the apps at all,
+
+since you just turn it on at your OAuth server and it would immediately be enabled across
+
+all of your applications.
+
+So that is just a few ways that OAuth improves the security of a system by reducing the
+
+number of places users enter passwords and gives you much more flexibility in the future.
+
+--------------------------------------------------------------------------------------------------
+
+OAuth and OpenID Connect are often used together, but they are different things, and most
+
+importantly, they have very different security considerations.
+
+We're going to get into the details of this in a later section.
+
+But for now, I want to just focus on the high level differences between the two.
+
+So OAuth itself was originally designed for applications to get access to APIs.
+
+That means all they need is the ability to access the API.
+
+The application doesn't actually need to know who the user is that's using that
+
+application. And I know this is a weird distinction to make, but if you bear with me for
+
+a second, I want to give you this analogy of an OAuth like system in the real world, and
+
+that is checking into a hotel.
+
+So when you go to a hotel and you check in, you show the person at the front desk your ID
+
+and your credit card, and they give you back a hotel key.
+
+Now, this key card is what you use to go access rooms in the hotel.
+
+So you might take it to the door of your room, swipe it on the door and the door opens up
+
+and lets you in. Now, in order for that system to work, the door doesn't actually need to
+
+know who you are, right?
+
+The person at the front desk knows who you are.
+
+They're the ones that checked your ID, but they give you back this key card which
+
+represents access to that room.
+
+You might then also take that keycard and access the hotel gym or the pool or other
+
+resources in the hotel.
+
+And this is exactly analogous to OAuth, where the person at the front desk is like the
+
+OAuth authorization server.
+
+They're the one checking ID cards and authenticating the user.
+
+They hand out these key cards which represent access tokens.
+
+And then the doors of the rooms are the resources -- or in OAuth terms -- the resource
+
+server. So when that door goes to validate the key card, to see if that person is allowed
+
+to open the door, they don't actually care who the person is who's using the card.
+
+They just care whether the card is encoded with data that says it's allowed.
+
+And now you might imagine that in the system, you don't actually encode user data into
+
+that key card at all because there's no need for it.
+
+You really just need to encode which doors this key card can open so that key card might
+
+contain a list of doors and an expiration date, and then it'll open up all the doors
+
+listed until it expires.
+
+So using this analogy, you can see that it's possible that even without the ability for
+
+the application to know who the user is, it's still possible that the application can do
+
+things. So if we now take this into the software world, you might imagine there's an
+
+application which is trying to upload a file to the user's Google Drive.
+
+Now, that application really just needs to present an interface to upload a file, and it
+
+would then go get an access token from Google and then it can make API calls to upload a
+
+file to that user's Google Drive.
+
+Now, that application doesn't actually need to know who the user is in order for this to
+
+work. On the other hand, if the application does need to know who the user is, for
+
+example, if it wants to show their name in the interface or show their profile photo in
+
+the corner, that's where we need something besides OAuth, because OAuth doesn't actually
+
+give us that information.
+
+There's nothing in OAuth that communicates user information, that's all added externally.
+
+Now, the main way that's added is using OpenID Connect.
+
+So OpenID Connect takes OAuth as a foundation and it adds in user identity information on
+
+top. So you can imagine the same framework we're going to learn about -- of how data
+
+moves around and who the players are in the OAuth transaction --
+
+that's all the same with OpenID Connect.
+
+We've just now added the concept of user information into the flow as well.
+
+So OpenID Connect is an extension of OAuth and that extension provides a mechanism where
+
+the OAuth server can actually communicate data about the user back to the application.
+
+And the main way it does that is with a new kind of token.
+
+So OAuth issues access tokens to apps, OpenID Connect issues ID tokens to apps.
+
+And the ID Token is a statement about the user.
+
+We'll see the details of how this works and what an ID Token actually looks like in a
+
+later section. But the important thing to remember for now is that OAuth is always about
+
+accessing APIs and OpenID Connect is about identifying the user.
+
+Sometimes you hear these called authorization versus authentication, but I don't actually
+
+like these terms very much.
+
+They feel too confusing, especially for non-native English speakers.
+
+They're almost the same word.
+
+It's nonsense. Don't worry about it, just think about accessing APIs and identifying
+
+users. And that is the high level difference between OAuth and OpenID Connect.
+
+Again, we'll cover the details of the differences in these protocols in a later section.
+
+
+-----------------------------------------------------------------------------------------------------------------
