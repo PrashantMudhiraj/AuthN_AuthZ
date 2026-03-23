@@ -12,7 +12,7 @@ async function hashPassword(password) {
  *  - Store slat inside hash string
  */
 //output of hashPassword
-//$2b$12$Z31ROzNtbv2SEhjpEiVcMezyMdqYShKkVmGBai9qDTjjyZGZ3fKj6
+//$2b$12$r3gGKKGdK3hzCpBkHraKweWS.CZ29FNjS8G/j0gSyzWYXrH8g//Pa
 
 async function verifyPassword(password, storedHash) {
     console.log(storedHash);

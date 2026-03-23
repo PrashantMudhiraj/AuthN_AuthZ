@@ -29,7 +29,7 @@
 - [2.5 – JWT Responsibilities (What it is NOT)](#25-what-jwt-is-and-is-not-responsible-for)
 - [2.6 – JWT - HS256 vs. RS256](#26-jwt---hs256-vs-rs256)
 - [2.7 – HS256 Problems in Real Systems](#27-hs256-problems-in-real-systems)
-- [2.8 – RS256 Advantages](#28-rs257-advantages)
+- [2.8 – RS256 Advantages](#28-RS256-advantages)
 - [2.9 – JWT - Token Lifecycle](#29-jwt---token-lifecycle)
 - [2.10 – JWT - Token Types (Access, ID, Refresh)](#210-jwt---token-types)
 - [2.11 – JWT - Secure Token Storage](#211-jwt---secure-token-storage)
@@ -794,6 +794,11 @@ graph TD
 - **Focus:** Authorization (AuthZ)
 - One identity can have multiple principals.
 
+### Identity vs Principal (Clarification)
+
+- **Identity:** Represents who a user or service is (authentication). Example: a username, user ID, or client ID — the credentials and attributes that prove an entity's identity.
+- **Principal:** Represents the security context used for authorization. A principal encapsulates the identity plus session-specific data (session ID, roles, permissions, IP, applied policies) and answers "what the actor is allowed to do." In short: identity = who; principal = who + context + what they may do.
+
 ### Policy
 
 - A Policy is a set of rules that determines whether a principal with certain attributes or permissions is allowed to perform a requested action.
@@ -1216,7 +1221,7 @@ This is asymmetric cryptography.
     - Difficult key rotation
     - Risk of algorithm confusion attacks
 
-## 2.8 RS257 Advantages
+## 2.8 RS256 Advantages
 
     - Private key never leaves auth server
     - Public key can safely distributed
