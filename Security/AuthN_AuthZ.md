@@ -508,39 +508,46 @@ sequenceDiagram
 #### RSA Process (Asymmetric)
 
 ```mermaid
-%%{ init: { "theme": "base" } }%%
 graph TD
   classDef data fill:#e3f2fd,stroke:#90caf9,color:#000;
   classDef process fill:#fffde7,stroke:#fbc02d,color:#000;
   classDef key fill:#fce4ec,stroke:#ec407a,color:#000;
   classDef success fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
   classDef failure fill:#ffebee,stroke:#e53935,color:#b71c1c;
+  classDef alert fill:#fff3e0,stroke:#ff9800,color:#e65100;
 
-  subgraph REQUESTER["STEP 1: REQUESTER - Signer"]
+  subgraph SENDER["STEP 1: SENDER (Signing)"]
     direction TB
-    Payload[Raw data or claims]:::data --> Hash1[Hash function]:::process
-    Hash1 --> Digest1[Digest]:::data
-    PrivateKey[Private key]:::key --> Sign[Sign digest with private key]:::process
-    Digest1 --> Sign
-    Sign --> Signature[Digital signature]:::data
+    Payload[Original Data]:::data --> HashFunc[Hash Function SHA-256]:::process
+    HashFunc --> Digest1[Message Digest]:::data
+    PrivKey[Private Key]:::key --> SignAlgo[Signing Algorithm]:::process
+    Digest1 --> SignAlgo
+    SignAlgo --> Sig[Digital Signature]:::data
   end
 
-  Signature --> Outgoing[Payload + signature]:::data
-  Payload --> Outgoing
-
-  subgraph SERVER["STEP 2: SERVER - Verifier"]
+  SENDER --> Channel{Unsecured Channel}:::alert
+  
+  subgraph VERIFIER["STEP 2: RECEIVER (Verification)"]
     direction TB
-    Outgoing --> Split[Extract payload and signature]:::process
-    Split --> Recalc[Recompute digest]:::process
-        Recalc --> Digest2[Digest]:::data
-        PublicKey[Public key]:::key --> Extract[Extract digest from signature using public key]:::process
-        Signature --> Extract
-        Extract --> ExtractedDigest[Extracted digest]:::data
-        Digest2 --> Compare[Compare digests]:::process
-        ExtractedDigest --> Compare
-        Compare --> OK[AUTHORIZED]:::success
-        Compare --> ERR[DENIED]:::failure
+    Channel --> DataRec[Received Data]:::data
+    Channel --> SigRec[Received Signature]:::data
+    
+    DataRec --> HashFunc2[Hash Function SHA-256]:::process
+    HashFunc2 --> Digest2[New Digest]:::data
+    
+    PubKey[Public Key]:::key --> VerifyAlgo[Verification Algorithm]:::process
+    SigRec --> VerifyAlgo
+    Digest2 --> VerifyAlgo
+    
+    VerifyAlgo --> Match{Result Match?}:::process
+    Match -- YES --> OK[VALID: Integrity & Authenticity Confirmed]:::success
+    Match -- NO --> ERR[INVALID: Data Tampered or Wrong Key]:::failure
   end
+
+  %% Tamper Scenario Note
+  Note1[If Data is altered here...]:::alert
+  Note1 -.-> Channel
+
 ```
 
 - The verifier recomputes a fresh hash from the received data, extracts the original hash from the signature using the public key, and compares the two hashes; if they match the signature is valid.
